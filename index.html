@@ -430,51 +430,61 @@ function showRosterScreen(){
   document.getElementById('main-menu').style.display='none';
   document.getElementById('roster-screen').style.display='flex';
   R.domElement.style.pointerEvents='none';
-  selectedRoster=[];
+  selectedRoster=Array(6).fill(null);
   buildRosterUI();
 }
 
 function buildRosterUI(){
   const pool=document.getElementById('roster-pool');pool.innerHTML='';
   const picked=document.getElementById('roster-picked');picked.innerHTML='';
-  document.getElementById('pick-count').textContent=selectedRoster.length+'/6';
+  const filled=selectedRoster.filter(x=>x!==null).length;
+  document.getElementById('pick-count').textContent=filled+'/6';
 
+  // 青蛙池
   ALL_FROGS.forEach((f,i)=>{
+    const used=selectedRoster.includes(f.type);
     const card=document.createElement('div');
-    const picked_idx=selectedRoster.indexOf(f.type);
-    const isPicked=picked_idx>=0;
-    card.style.cssText='width:120px;padding:12px 8px;border-radius:12px;text-align:center;cursor:pointer;transition:all 0.15s;border:2px solid '+(isPicked?'#0f8':'#444')+';background:'+(isPicked?'#0a2a0a':'#1a1a2e')+';opacity:'+(isPicked?'0.5':'1')+';box-shadow:'+(isPicked?'0 0 12px rgba(0,255,136,0.3)':'none');
-    card.onmouseover=function(){if(!isPicked)this.style.transform='translateY(-3px)';};
-    card.onmouseout=function(){this.style.transform='translateY(0)';};
-    card.innerHTML=`<div style="font-size:28px">${f.icon}</div><div style="color:${f.color};font-weight:bold;font-size:13px;">${f.name}</div><div style="color:#aaa;font-size:10px;">${f.desc}</div>`;
-    card.onclick=()=>{
-      if(isPicked){selectedRoster.splice(picked_idx,1);}
-      else if(selectedRoster.length<6){selectedRoster.push(f.type);}
-      buildRosterUI();
-    };
+    card.draggable=!used;
+    card.style.cssText='width:110px;padding:10px 6px;border-radius:10px;text-align:center;cursor:'+(used?'default':'grab')+';transition:all 0.15s;border:2px solid '+(used?'#444':'#555')+';background:'+(used?'#111':'#1a1a2e')+';opacity:'+(used?'0.4':'1');
+    card.innerHTML=`<div style="font-size:26px">${f.icon}</div><div style="color:${used?'#555':f.color};font-weight:bold;font-size:12px;">${f.name}</div><div style="color:#888;font-size:9px;">${f.desc}</div>`;
+    card.id='frog-card-'+f.type;
+    card.ondragstart=e=>{e.dataTransfer.setData('text/plain',f.type);e.dataTransfer.effectAllowed='move';card.style.opacity='0.5';};
+    card.ondragend=e=>{card.style.opacity=used?'0.4':'1';};
     pool.appendChild(card);
   });
 
-  // 已选阵容
+  // 6个位置槽
+  const posNames=['1号(后排右·发球)','2号(前排右)','3号(前排中)','4号(前排左)','5号(后排左)','6号(后排中)'];
   selectedRoster.forEach((t,i)=>{
-    const f=ALL_FROGS.find(x=>x.type===t);
     const slot=document.createElement('div');
-    slot.style.cssText='width:70px;text-align:center;padding:8px;border-radius:8px;background:#0a2a0a;border:1px solid #0f8;';
-    slot.innerHTML=`<div style="font-size:24px">${f.icon}</div><div style="color:${f.color};font-size:10px;font-weight:bold;">${f.name}</div><div style="color:#aaa;font-size:9px;">${i+1}号位</div>`;
-    slot.onclick=()=>{selectedRoster.splice(i,1);buildRosterUI();};
+    slot.style.cssText='width:78px;text-align:center;padding:6px;border-radius:8px;background:'+(t?'#0a2a0a':'rgba(255,255,255,0.02)')+';border:'+(t?'2px solid #0f8':'1px dashed #555')+';transition:all 0.15s;min-height:85px;';
+    slot.ondragover=e=>{e.preventDefault();slot.style.borderColor='#ff0';slot.style.background='#1a1a0a';};
+    slot.ondragleave=e=>{slot.style.borderColor=t?'#0f8':'#555';slot.style.background=t?'#0a2a0a':'rgba(255,255,255,0.02)';};
+    slot.ondrop=e=>{
+      e.preventDefault();
+      const frogType=e.dataTransfer.getData('text/plain');
+      // 如果该青蛙已在其他位置,移除
+      const oldIdx=selectedRoster.indexOf(frogType);
+      if(oldIdx>=0)selectedRoster[oldIdx]=null;
+      // 如果该位置已有青蛙,放回池中
+      if(selectedRoster[i]){/* nothing needed, just replace */}
+      selectedRoster[i]=frogType;
+      buildRosterUI();
+    };
+    if(t){
+      const f=ALL_FROGS.find(x=>x.type===t);
+      slot.innerHTML=`<div style="font-size:22px">${f.icon}</div><div style="color:${f.color};font-size:10px;font-weight:bold;">${f.name}</div><div style="color:#aaa;font-size:9px;">${posNames[i]}</div>`;
+      slot.onclick=()=>{selectedRoster[i]=null;buildRosterUI();};
+    }else{
+      slot.innerHTML=`<div style="font-size:22px;color:#444;">❓</div><div style="color:#666;font-size:9px;">${posNames[i]}</div><div style="color:#555;font-size:8px;">拖入青蛙</div>`;
+    }
+    // 高亮前后排
+    if([3,2,1].includes(i))slot.style.borderColor=t?'#0f8':'#48f';
     picked.appendChild(slot);
   });
 
-  // 空位
-  for(let i=selectedRoster.length;i<6;i++){
-    const empty=document.createElement('div');
-    empty.style.cssText='width:70px;text-align:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px dashed #444;';
-    empty.innerHTML='<div style="font-size:24px;color:#444;">❓</div><div style="color:#555;font-size:10px;">空位</div>';
-    picked.appendChild(empty);
-  }
-
   const btn=document.getElementById('confirm-btn');
-  if(selectedRoster.length===6){btn.disabled=false;btn.style.opacity='1';}
+  if(filled===6){btn.disabled=false;btn.style.opacity='1';}
   else{btn.disabled=true;btn.style.opacity='0.5';}
 }
 
@@ -485,10 +495,10 @@ function randomRoster(){
 }
 
 function confirmRoster(){
-  if(selectedRoster.length!==6)return;
-  // 更新LINEUP
-  selectedRoster.forEach((t,i)=>{LU[i]=t;});
-  // 重建队伍
+  const filled=selectedRoster.filter(x=>x!==null).length;
+  if(filled!==6)return;
+  // 更新LINEUP(按位置1→6排列，对应场上1号位到6号位)
+  for(let i=0;i<6;i++){LU[i]=selectedRoster[i];}
   crAll();bFB();
   document.getElementById('roster-screen').style.display='none';
   startGameNow();
