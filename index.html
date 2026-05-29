@@ -52,6 +52,52 @@
 </style>
 <div id="tut"><div><div style="font-size:44px" id="te"></div><h2 style="margin:8px 0;color:#fa0" id="tt"></h2><p style="color:#ccc;font-size:13px;line-height:1.7" id="tx"></p><div style="display:flex;gap:8px;justify-content:center;margin-top:14px"><button id="tp" style="padding:8px 16px;background:#444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">←</button><button id="tn" style="padding:8px 16px;background:#e94560;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">→</button><button id="ts" style="padding:8px 16px;background:#333;color:#aaa;border:none;border-radius:6px;cursor:pointer;font-size:13px">跳过</button></div></div></div>
 
+<!-- ====== 主菜单 ====== -->
+<div id="main-menu" style="display:flex;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#1a3a1a 0%,#0a1a0a 50%,#1a2a3a 100%);">
+  <div style="text-align:center;margin-bottom:30px;">
+    <div style="font-size:80px;">🐸</div>
+    <h1 style="font-size:52px;color:#fff;text-shadow:0 0 30px #4a8,0 4px 8px #000;margin:10px 0;">青蛙排球</h1>
+    <p style="color:#aaa;font-size:18px;">FROG VOLLEYBALL</p>
+    <p style="color:#888;font-size:12px;margin-top:8px;">指令选择 + QTE时机 | 6v6 排球博弈</p>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px;width:280px;">
+    <button onclick="startSinglePlayer()" style="padding:16px;font-size:20px;font-weight:bold;background:linear-gradient(135deg,#0c6,#0a4);color:#fff;border:2px solid #0f8;border-radius:14px;cursor:pointer;transition:all 0.2s;">🎮 单人游戏</button>
+    <button onclick="startMultiplayer()" style="padding:16px;font-size:20px;font-weight:bold;background:linear-gradient(135deg,#06a,#048);color:#fff;border:2px solid #0cf;border-radius:14px;cursor:pointer;transition:all 0.2s;">🔗 联机对战</button>
+    <button onclick="showSettings()" style="padding:16px;font-size:20px;font-weight:bold;background:linear-gradient(135deg,#444,#333);color:#fff;border:2px solid #888;border-radius:14px;cursor:pointer;transition:all 0.2s;">⚙ 设置</button>
+  </div>
+  <p style="color:#555;font-size:11px;margin-top:30px;">v4.2 | GitHub: WTH666888/frog-volleyball</p>
+</div>
+
+<!-- ====== 阵容选择 ====== -->
+<div id="roster-screen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;background:rgba(0,0,0,0.92);flex-direction:column;align-items:center;justify-content:center;">
+  <h2 style="color:#fff;font-size:28px;margin-bottom:8px;">🐸 选择你的6只首发青蛙</h2>
+  <p style="color:#aaa;font-size:13px;margin-bottom:16px;">点击青蛙添加到阵容 (已选: <b id="pick-count" style="color:#0f8;">0/6</b>)</p>
+  <div id="roster-pool" style="display:flex;flex-wrap:wrap;gap:12px;max-width:550px;justify-content:center;margin-bottom:8px;"></div>
+  <div id="roster-picked" style="display:flex;gap:10px;min-height:90px;align-items:center;justify-content:center;margin:10px 0;background:rgba(255,255,255,0.05);border-radius:12px;padding:12px 20px;width:500px;"></div>
+  <div style="display:flex;gap:12px;margin-top:10px;">
+    <button onclick="randomRoster()" style="padding:10px 24px;background:#444;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;">🎲 随机</button>
+    <button onclick="confirmRoster()" id="confirm-btn" style="padding:10px 24px;background:#0c6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;opacity:0.5;" disabled>✅ 确认出战 (选满6只)</button>
+    <button onclick="backToMenu()" style="padding:10px 24px;background:#c33;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;">↩ 返回</button>
+  </div>
+</div>
+
+<!-- ====== 设置 ====== -->
+<div id="settings-screen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;background:rgba(0,0,0,0.92);flex-direction:column;align-items:center;justify-content:center;">
+  <h2 style="color:#fff;font-size:28px;margin-bottom:20px;">⚙ 游戏设置</h2>
+  <div style="background:#1a1a2e;border-radius:14px;padding:24px;width:400px;color:#ccc;font-size:14px;line-height:2.5;">
+    <div style="display:flex;justify-content:space-between;"><span>子弹时间速度</span><select id="set-bt"><option value="0.05">0.05x (极慢)</option><option value="0.10">0.10x</option><option value="0.15" selected>0.15x (标准)</option><option value="0.25">0.25x (快速)</option></select></div>
+    <div style="display:flex;justify-content:space-between;"><span>QTE 难度</span><select id="set-qte"><option value="easy">简单 (宽绿区)</option><option value="normal" selected>标准</option><option value="hard">困难 (窄绿区)</option></select></div>
+    <div style="display:flex;justify-content:space-between;"><span>制胜分数</span><select id="set-pts"><option value="15">15分 (快速)</option><option value="25" selected>25分 (标准)</option><option value="35">35分 (长局)</option></select></div>
+    <div style="display:flex;justify-content:space-between;"><span>AI 难度</span><select id="set-ai"><option value="easy">🟢 简单</option><option value="normal" selected>🟡 普通</option><option value="hard">🔴 困难</option></select></div>
+    <div style="display:flex;justify-content:space-between;"><span>青蛙皮肤</span><select id="set-skin"><option value="default">默认</option><option value="neon">霓虹</option><option value="pastel">粉彩</option></select></div>
+    <div style="display:flex;justify-content:space-between;"><span>音效</span><select id="set-sfx"><option value="on" selected>开启</option><option value="off">关闭</option></select></div>
+  </div>
+  <div style="display:flex;gap:12px;margin-top:16px;">
+    <button onclick="saveSettings()" style="padding:10px 24px;background:#0c6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;">✅ 保存</button>
+    <button onclick="backToMenu()" style="padding:10px 24px;background:#c33;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;">↩ 返回</button>
+  </div>
+</div>
+
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import*as T from'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';
@@ -94,6 +140,8 @@ function crAll(){
   log('✅ 蓝队'+pF.length+'只 + 红队'+aF.length+'只 = 12只青蛙','p');
 }
 crAll();
+// 初始只显示菜单,不开始游戏
+document.getElementById('hint').textContent='';
 
 // ====== 粒子 (性能优化) ======
 let pts=[];
@@ -293,6 +341,134 @@ document.getElementById('slBullet').addEventListener('input',e=>{btS=[0.05,0.1,0
 function tgF(i){forms[i]=forms[i]==='attack'?'defense':'attack';log(FN[pF[i].type]+' → '+(forms[i]==='attack'?'⚔攻':'🛡守'));}
 function bFB(){const d=document.getElementById('fBtns');d.innerHTML='';LU.forEach((t,i)=>{const b=document.createElement('button');b.style.cssText='padding:2px 5px;border:none;border-radius:3px;font-size:8px;cursor:pointer;color:#fff';b.style.background=forms[i]==='attack'?'#611':'#116';b.textContent=(i+1)+(forms[i]==='attack'?'⚔':'🛡');b.title=FN[t];b.addEventListener('click',()=>{tgF(i);bFB();});d.appendChild(b);});}bFB();
 
+// ====== 主菜单 & 选人 & 设置 ======
+let selectedRoster = [...LU]; // 默认全选
+let gameStarted = false;
+const ALL_FROGS = [
+  {type:'bouncy',name:'弹力蛙',desc:'一传绿区超宽,拦网窗口长',color:'#4cf',icon:'🦘'},
+  {type:'power',name:'大力蛙',desc:'扣球威力大,绿区窄但成功致命',color:'#f64',icon:'💪'},
+  {type:'beauty',name:'美女蛙',desc:'干扰对方,缩小对手判定圈15%',color:'#f8c',icon:'💄'},
+  {type:'speed',name:'速度蛙',desc:'子弹时间+30%,指针摆动慢',color:'#fd4',icon:'⚡'},
+  {type:'normal',name:'普通蛙',desc:'攻守均衡,判定圈标准',color:'#8c8',icon:'🐸'},
+  {type:'cheer',name:'加油蛙',desc:'全队绿区+10%,士气增益',color:'#fa0',icon:'📣'},
+  {type:'black',name:'黑拳蛙',desc:'E键传送至落点,3回合CD',color:'#555',icon:'🥊'},
+  {type:'coach',name:'教练蛙',desc:'士气翻倍,暂停+1,BUFF代价减半',color:'#eee',icon:'🧢'},
+];
+
+function showRosterScreen(){
+  document.getElementById('main-menu').style.display='none';
+  document.getElementById('roster-screen').style.display='flex';
+  selectedRoster=[];
+  buildRosterUI();
+}
+
+function buildRosterUI(){
+  const pool=document.getElementById('roster-pool');pool.innerHTML='';
+  const picked=document.getElementById('roster-picked');picked.innerHTML='';
+  document.getElementById('pick-count').textContent=selectedRoster.length+'/6';
+
+  ALL_FROGS.forEach((f,i)=>{
+    const card=document.createElement('div');
+    const picked_idx=selectedRoster.indexOf(f.type);
+    const isPicked=picked_idx>=0;
+    card.style.cssText='width:120px;padding:10px;border-radius:10px;text-align:center;cursor:pointer;transition:all 0.2s;border:2px solid '+(isPicked?'#0f8':'#444')+';background:'+(isPicked?'#0a2a0a':'#1a1a2e')+';opacity:'+(isPicked?'0.5':'1');
+    card.innerHTML=`<div style="font-size:28px">${f.icon}</div><div style="color:${f.color};font-weight:bold;font-size:13px;">${f.name}</div><div style="color:#aaa;font-size:10px;">${f.desc}</div>`;
+    card.onclick=()=>{
+      if(isPicked){selectedRoster.splice(picked_idx,1);}
+      else if(selectedRoster.length<6){selectedRoster.push(f.type);}
+      buildRosterUI();
+    };
+    pool.appendChild(card);
+  });
+
+  // 已选阵容
+  selectedRoster.forEach((t,i)=>{
+    const f=ALL_FROGS.find(x=>x.type===t);
+    const slot=document.createElement('div');
+    slot.style.cssText='width:70px;text-align:center;padding:8px;border-radius:8px;background:#0a2a0a;border:1px solid #0f8;';
+    slot.innerHTML=`<div style="font-size:24px">${f.icon}</div><div style="color:${f.color};font-size:10px;font-weight:bold;">${f.name}</div><div style="color:#aaa;font-size:9px;">${i+1}号位</div>`;
+    slot.onclick=()=>{selectedRoster.splice(i,1);buildRosterUI();};
+    picked.appendChild(slot);
+  });
+
+  // 空位
+  for(let i=selectedRoster.length;i<6;i++){
+    const empty=document.createElement('div');
+    empty.style.cssText='width:70px;text-align:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px dashed #444;';
+    empty.innerHTML='<div style="font-size:24px;color:#444;">❓</div><div style="color:#555;font-size:10px;">空位</div>';
+    picked.appendChild(empty);
+  }
+
+  const btn=document.getElementById('confirm-btn');
+  if(selectedRoster.length===6){btn.disabled=false;btn.style.opacity='1';}
+  else{btn.disabled=true;btn.style.opacity='0.5';}
+}
+
+function randomRoster(){
+  const shuffled=[...ALL_FROGS].sort(()=>Math.random()-0.5);
+  selectedRoster=shuffled.slice(0,6).map(f=>f.type);
+  buildRosterUI();
+}
+
+function confirmRoster(){
+  if(selectedRoster.length!==6)return;
+  // 更新LINEUP
+  selectedRoster.forEach((t,i)=>{LU[i]=t;});
+  // 重建队伍
+  crAll();bFB();
+  document.getElementById('roster-screen').style.display='none';
+  startGameNow();
+}
+
+function startSinglePlayer(){
+  showRosterScreen();
+}
+
+function startMultiplayer(){
+  document.getElementById('main-menu').style.display='none';
+  document.getElementById('multi-st').textContent='联机模式';
+  startGameNow();
+}
+
+function showSettings(){
+  document.getElementById('main-menu').style.display='none';
+  document.getElementById('settings-screen').style.display='flex';
+}
+
+function saveSettings(){
+  btS=parseFloat(document.getElementById('set-bt').value);
+  aiD=document.getElementById('set-ai').value;
+  const qteMode=document.getElementById('set-qte').value;
+  const ptsVal=parseInt(document.getElementById('set-pts').value);
+  const skin=document.getElementById('set-skin').value;
+  const sfx=document.getElementById('set-sfx').value;
+  localStorage.setItem('fv_settings',JSON.stringify({btS,aiD,qteMode,ptsVal,skin,sfx}));
+  log('设置已保存!','p');
+  document.getElementById('settings-screen').style.display='none';
+  document.getElementById('main-menu').style.display='flex';
+}
+
+function backToMenu(){
+  document.getElementById('roster-screen').style.display='none';
+  document.getElementById('settings-screen').style.display='none';
+  document.getElementById('main-menu').style.display='flex';
+}
+
+function startGameNow(){
+  gameStarted=true;
+  document.getElementById('main-menu').style.display='none';
+  document.getElementById('hint').textContent='按空格发球 | 123战术 | T暂停 | E传送';
+  rR();
+  if(!localStorage.getItem('fv4_tut')){setTimeout(()=>sT(0),1000);localStorage.setItem('fv4_tut','1');}
+}
+
+// 加载设置
+const savedSet=JSON.parse(localStorage.getItem('fv_settings')||'{}');
+if(savedSet.btS)btS=savedSet.btS;
+if(savedSet.aiD){aiD=savedSet.aiD;document.getElementById('selAI').value=aiD;}
+if(savedSet.ptsVal)window._maxPts=savedSet.ptsVal;
+if(savedSet.sfx==='off'){const orig_bp=bp;bp=function(){};}
+
 // ====== 教程 ======
 const TUT=[{e:'🐸',t:'欢迎来到青蛙排球!',x:'指令选择 + QTE时机的排球博弈。<br>6只青蛙 vs AI，25分制三局两胜。'},{e:'🖱',t:'操作方式',x:'<b>鼠标点击</b>绿圈青蛙选择<br><b>空格键</b> QTE判定<br><b>鼠标拖拽</b>旋转视角<br>数字键<b>1/2/3</b>切换战术<br><b>T</b>暂停 <b>E</b>黑拳蛙传送 <b>R</b>重置'},{e:'🏐',t:'游戏流程',x:'<b>发球</b>(空格QTE)→AI接球→AI进攻→<br><b>你拦网</b>(点前排蛙,可多选1~3只,空格确认)→<br><b>你进攻</b>(点前排蛙扣球,空格QTE)→<b>得分!</b>'},{e:'📊',t:'QTE蓄力条',x:'<span style="color:#0f8;">绿色区域</span>=完美→得分!<br><span style="color:#fa0;">橙色</span>=普通→成功<br><span style="color:#f44;">红色</span>=失误→丢分'},{e:'🐸',t:'8种青蛙 + 被动',x:'<span style="color:#4cf;">弹力蛙</span>:绿区25-85%<br><span style="color:#f64;">大力蛙</span>:绿区48-62%,扣球强<br><span style="color:#fd4;">速度蛙</span>:子弹时间+30%<br><span style="color:#f8c;">美女蛙</span>:对手绿区-15%<br><span style="color:#fa0;">加油蛙</span>:己方绿区+10%<br><span style="color:#555;">黑拳蛙</span>:E键传送(3回合CD)<br><span style="color:#eee;">教练蛙</span>:士气翻倍,暂停+1<br>底部按钮可切换⚔攻/🛡守形态!'},{e:'🎯',t:'准备好了!',x:'25分制,领先2分,三局两胜!<br>按T暂停可换替补青蛙<br>🐸🏐 开始吧!'}];
 document.getElementById('tp').addEventListener('click',()=>{if(tutS>0)tutS--;sT(tutS);});document.getElementById('tn').addEventListener('click',()=>{if(tutS<TUT.length-1)tutS++;else{document.getElementById('tut').style.display='none';return;}sT(tutS);});document.getElementById('ts').addEventListener('click',()=>{document.getElementById('tut').style.display='none';});
@@ -370,6 +546,7 @@ function anim(){
   S.fog.density=bt?0.02:0.005;R.toneMappingExposure=bt?0.7:1.2;
   ctrl.update();R.render(S,C);
 }
-anim();rR();document.getElementById('hint').textContent='按空格发球 | 123战术 | T暂停 | E传送';
-log('🐸 青蛙排球 v4.0 就绪! 蓝队'+pF.length+'只 红队'+aF.length+'只');
+anim();
+// 游戏从菜单开始,不自动发球
+log('🐸 青蛙排球 v4.2 就绪! 请从菜单选择游戏模式');
 </script></body></html>
