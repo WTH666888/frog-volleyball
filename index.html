@@ -117,6 +117,8 @@ import*as T from'three';import{OrbitControls}from'three/addons/controls/OrbitCon
 const S=new T.Scene();S.background=new T.Color(0x3a5a3a);S.fog=new T.Fog(0x3a5a3a,30,80);
 const C=new T.PerspectiveCamera(50,innerWidth/innerHeight,1,120);C.position.set(0,17,14);C.lookAt(0,0,0);
 const R=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});R.setSize(innerWidth,innerHeight);R.shadowMap.enabled=true;document.body.appendChild(R.domElement);
+R.domElement.style.position='fixed';R.domElement.style.top='0';R.domElement.style.left='0';
+R.domElement.style.zIndex='5';R.domElement.style.pointerEvents='none'; // 默认不拦截点击
 const L=new T.DirectionalLight(0xffffff,2.5);L.position.set(8,18,3);L.castShadow=true;L.shadow.mapSize.set(1024,1024);Object.assign(L.shadow.camera,{near:1,far:60,left:-18,right:18,top:13,bottom:-13});S.add(L,new T.AmbientLight(0x6688aa,2.2),new T.HemisphereLight(0x88ccff,0x444422,1.1));
 const G=new T.Mesh(new T.PlaneGeometry(50,40),new T.MeshStandardMaterial({color:0x4a8a3f,roughness:0.8}));G.rotation.x=-Math.PI/2;G.receiveShadow=true;S.add(G);
 const Court=new T.Mesh(new T.PlaneGeometry(18,24),new T.MeshStandardMaterial({color:0xd4884a,roughness:0.5}));Court.rotation.x=-Math.PI/2;Court.position.y=0.01;Court.receiveShadow=true;S.add(Court);
@@ -205,9 +207,9 @@ function crAll(){
   log('✅ 蓝队'+pF.length+'只 + 红队'+aF.length+'只 = 12只青蛙','p');
 }
 crAll();
-// 初始只显示菜单,不开始游戏。画布不响应点击
-R.domElement.style.pointerEvents='none';
 document.getElementById('hint').textContent='';
+// 菜单显示时画布不拦截点击
+R.domElement.style.pointerEvents='none';
 
 // ====== 粒子 (性能优化) ======
 let pts=[];
@@ -424,6 +426,7 @@ const ALL_FROGS = [
 function showRosterScreen(){
   document.getElementById('main-menu').style.display='none';
   document.getElementById('roster-screen').style.display='flex';
+  R.domElement.style.pointerEvents='none';
   selectedRoster=[];
   buildRosterUI();
 }
@@ -504,6 +507,7 @@ function startMultiplayer(){
 function showSettings(){
   document.getElementById('main-menu').style.display='none';
   document.getElementById('settings-screen').style.display='flex';
+  R.domElement.style.pointerEvents='none';
 }
 
 function saveSettings(){
@@ -523,6 +527,7 @@ function backToMenu(){
   document.getElementById('roster-screen').style.display='none';
   document.getElementById('settings-screen').style.display='none';
   document.getElementById('main-menu').style.display='flex';
+  R.domElement.style.pointerEvents='none';
 }
 // 暴露到全局(window)供onclick调用
 window.startSinglePlayer=startSinglePlayer;
