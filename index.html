@@ -529,7 +529,7 @@ function backToMenu(){
   document.getElementById('main-menu').style.display='flex';
   R.domElement.style.pointerEvents='none';
 }
-// 暴露到全局(window)供onclick调用
+// 暴露到全局 + 直接绑定事件(双保险)
 window.startSinglePlayer=startSinglePlayer;
 window.startMultiplayer=startMultiplayer;
 window.showSettings=showSettings;
@@ -537,6 +537,25 @@ window.randomRoster=randomRoster;
 window.confirmRoster=confirmRoster;
 window.backToMenu=backToMenu;
 window.saveSettings=saveSettings;
+
+// 直接给所有按钮绑事件(绕过onclick)
+document.querySelectorAll('#main-menu button').forEach(b=>{
+  const t=b.textContent.trim();
+  if(t.includes('单人'))b.addEventListener('click',startSinglePlayer);
+  else if(t.includes('联机'))b.addEventListener('click',startMultiplayer);
+  else if(t.includes('设置'))b.addEventListener('click',showSettings);
+});
+document.querySelectorAll('#roster-screen button').forEach(b=>{
+  const t=b.textContent.trim();
+  if(t.includes('随机'))b.addEventListener('click',randomRoster);
+  else if(t.includes('确认'))b.addEventListener('click',confirmRoster);
+  else if(t.includes('返回'))b.addEventListener('click',backToMenu);
+});
+document.querySelectorAll('#settings-screen button').forEach(b=>{
+  const t=b.textContent.trim();
+  if(t.includes('保存'))b.addEventListener('click',saveSettings);
+  else if(t.includes('返回'))b.addEventListener('click',backToMenu);
+});
 
 function startGameNow(){
   gameStarted=true;
