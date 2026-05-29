@@ -31,6 +31,25 @@
 <div id="fBtns" style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);display:flex;gap:3px;z-index:10"></div>
 <div id="log"></div>
 <div id="qte"><div id="qte-o"><div id="qte-p" style="left:38%;width:38%"></div><div id="qte-f"></div></div><div id="qte-l">␣ 空格确认</div></div>
+<!-- NBA2K 风格 UI -->
+<div id="score-pop" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:80px;font-weight:bold;z-index:50;pointer-events:none;animation:sp 0.8s ease-out forwards;"></div>
+<div id="commentary" style="display:none;position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);z-index:50;pointer-events:none;text-align:center;">
+  <div id="com-text" style="font-size:36px;font-weight:bold;color:#ff0;text-shadow:0 0 20px #f80,0 0 40px #f40;animation:comIn 0.5s ease-out,comOut 0.5s 1.5s ease-in forwards;"></div>
+  <div id="com-sub" style="font-size:16px;color:#fff;margin-top:4px;opacity:0.9;"></div>
+</div>
+<div id="replay-overlay" style="display:none;position:fixed;top:15px;right:15px;z-index:50;background:rgba(0,0,0,0.8);color:#0f8;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:bold;border:2px solid #0f8;animation:pulse 0.5s infinite alternate;">🔄 精彩回放中...</div>
+<div id="stats-card" style="position:absolute;bottom:90px;right:10px;z-index:10;background:rgba(0,0,0,0.75);color:#fff;padding:10px 14px;border-radius:10px;font-size:11px;display:none;text-align:center;border:1px solid #4488ff;">
+  <div id="sc-name" style="font-size:14px;font-weight:bold;"></div>
+  <div id="sc-type" style="color:#aaa;font-size:10px;"></div>
+  <div style="display:flex;gap:8px;margin-top:4px;"><span>⚔攻</span><span id="sc-atk">-</span></div>
+  <div style="display:flex;gap:8px;"><span>🛡守</span><span id="sc-def">-</span></div>
+  <div id="sc-passive" style="color:#ff0;font-size:9px;margin-top:2px;"></div>
+</div>
+<style>
+@keyframes sp{0%{opacity:0;transform:translate(-50%,-50%) scale(0.3)}30%{opacity:1;transform:translate(-50%,-50%) scale(1.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}}
+@keyframes comIn{0%{opacity:0;transform:translateY(20px)scale(0.5)}100%{opacity:1;transform:translateY(0)scale(1)}}
+@keyframes comOut{0%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}
+</style>
 <div id="tut"><div><div style="font-size:44px" id="te"></div><h2 style="margin:8px 0;color:#fa0" id="tt"></h2><p style="color:#ccc;font-size:13px;line-height:1.7" id="tx"></p><div style="display:flex;gap:8px;justify-content:center;margin-top:14px"><button id="tp" style="padding:8px 16px;background:#444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">←</button><button id="tn" style="padding:8px 16px;background:#e94560;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">→</button><button id="ts" style="padding:8px 16px;background:#333;color:#aaa;border:none;border-radius:6px;cursor:pointer;font-size:13px">跳过</button></div></div></div>
 
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
@@ -156,8 +175,18 @@ function aw(tm){
 }
 function wS(tm){
   sets[tm]++;bp(880,0.25);setTimeout(()=>bp(1100,0.4),180);
+  scorePop(tm, sets[tm]===2?'🏆':'📋');
+  commentary('winSet');
+  shakeCam(1.5);
+  sp(0,3,0,0xffdd00,40);
   log((tm==='blue'?'你':'AI')+'赢得第'+cSet+'局!','p');
-  if(sets[tm]>=2){mo=true;document.getElementById('hint').textContent=tm==='blue'?'🏆 你赢了! 按R重来':'💔 AI获胜 按R重来';}
+  if(sets[tm]>=2){mo=true;document.getElementById('hint').textContent=tm==='blue'?'🏆 你赢了! 按R重来':'💔 AI获胜 按R重来';
+    document.getElementById('com-text').textContent=tm==='blue'?'🏆 恭喜获得比赛胜利!!!':'💔 AI获得比赛胜利';
+    document.getElementById('com-text').style.animation='none';document.getElementById('com-text').offsetHeight;
+    document.getElementById('com-text').style.animation='comIn 0.5s ease-out';
+    document.getElementById('commentary').style.display='block';
+    sp(0,2,0,0xffdd00,50);sp(3,2,3,0xff8800,30);sp(-3,2,-3,0xff8800,30);
+  }
   else{cSet++;sc={blue:0,red:0};tos={blue:2,red:2};uUI();log('交换场地');}
 }
 
@@ -220,13 +249,13 @@ function aPl(){
 }
 
 // ====== 玩家操作 ======
-function dR(f){if(st!=='receive'||f.front)return;clS();bt=false;tc=2;const mod=getM(f,true);qS(r=>{if(r==='perfect'){sP();sp(f.model.position.x,1.5,f.model.position.z,0x00ff88,15);mor.blue=Math.min(100,mor.blue+15);mor.red=Math.max(0,mor.red-5);log('完美一传!','p');}else if(r==='normal'){bp(440,0.07);mor.blue=Math.min(100,mor.blue+5);log('一传成功');}else{sM();aw('red');rR();return;}st='set';bt=true;hl(null);document.getElementById('hint').textContent='✋ 选任意蛙做二传';setTimeout(()=>{if(st==='set')dS(pF[1]);},3000);},'一传',mod);}
+function dR(f){if(st!=='receive'||f.front)return;clS();bt=false;tc=2;showStats(f);const mod=getM(f,true);qS(r=>{if(r==='perfect'){sP();sp(f.model.position.x,1.5,f.model.position.z,0x00ff88,15);mor.blue=Math.min(100,mor.blue+15);mor.red=Math.max(0,mor.red-5);log('完美一传!','p');commentary('perfectReceive');}else if(r==='normal'){bp(440,0.07);mor.blue=Math.min(100,mor.blue+5);log('一传成功');}else{sM();aw('red');rR();return;}st='set';bt=true;hl(null);document.getElementById('hint').textContent='✋ 选任意蛙做二传';setTimeout(()=>{if(st==='set')dS(pF[1]);},3000);},'一传',mod);}
 function dS(f){if(st!=='set')return;clS();bt=false;tc=3;bp(350,0.07);log(FN[f.type]+' 二传!');setTimeout(()=>{st='attack';bt=true;hl(true);document.getElementById('hint').textContent='💥 选前排蛙扣球 ('+(tac==='power'?'全力':tac==='tip'?'轻吊':'假扣真传')+')';setTimeout(()=>{if(st==='attack'){aw('red');bt=false;clS();rR();}},3500);},500);}
-function dK(f){if(st!=='attack'||!f.front)return;clS();bt=false;if(tac==='tip'){sS();sp(f.model.position.x,2,f.model.position.z-2,0xffaa00,8);log('🪶轻吊得分!','p');aw('blue');rot(pF);rR();return;}
+function dK(f){if(st!=='attack'||!f.front)return;clS();bt=false;showStats(f);if(tac==='tip'){sS();sp(f.model.position.x,2,f.model.position.z-2,0xffaa00,8);log('🪶轻吊得分!','p');scorePop('blue',1);aw('blue');rot(pF);rR();return;}
   const cfg={easy:{b:0.15,p:0.2},normal:{b:0.35,p:0.35},hard:{b:0.55,p:0.45}};const c=cfg[aiD];
-  if(Math.random()<c.b){if(Math.random()<c.p){sM();log('AI完美拦网!','m');aw('red');rR();}else{sP();log('AI拦网撑起');bt=true;hl(true);document.getElementById('hint').textContent='AI拦网!再选蛙扣球';}return;}
-  const mod=getM(f,false);qS(r=>{if(r==='perfect'){sS();sp(f.model.position.x,2.5,f.model.position.z-3,0xffaa00,20);mor.blue=Math.min(100,mor.blue+25);log('💥完美扣球!','p');aw('blue');rot(pF);}else if(r==='normal'){sS();mor.blue=Math.min(100,mor.blue+10);log('扣球得分!','p');aw('blue');rot(pF);}else{sM();log('扣球失误','m');aw('red');}uUI();rR();},'扣球!',mod);}
-function dB(){clS();bt=false;const f=blk[0],mod=f?getM(f,false):{ps:38,pe:76,sp:1,label:'拦网'};qS(r=>{if(r==='perfect'){sS();if(f)sp(f.model.position.x,2,f.model.position.z,0x00ff88,20);mor.blue=Math.min(100,mor.blue+20+blk.length*5);log('🛡完美拦网!','p');aw('blue');rot(pF);rR();}else if(r==='normal'){sP();mor.blue=Math.min(100,mor.blue+8);log('拦网撑起!转入进攻');st='attack';bt=true;hl(true);document.getElementById('hint').textContent='拦网撑起!选蛙扣球';}else{sM();log('拦网失败','m');aw('red');rR();}blk=[];},'拦网('+blk.length+'人)!',mod);}
+  if(Math.random()<c.b){if(Math.random()<c.p){sM();log('AI完美拦网!','m');scorePop('red',1);aw('red');rR();}else{sP();log('AI拦网撑起');bt=true;hl(true);document.getElementById('hint').textContent='AI拦网!再选蛙扣球';}return;}
+  const mod=getM(f,false);qS(r=>{if(r==='perfect'){sS();sp(f.model.position.x,2.5,f.model.position.z-3,0xffaa00,20);mor.blue=Math.min(100,mor.blue+25);log('💥完美扣球!','p');scorePop('blue',1);commentary('perfectSpike');shakeCam(1.2);startReplay(1800);aw('blue');rot(pF);}else if(r==='normal'){sS();mor.blue=Math.min(100,mor.blue+10);log('扣球得分!','p');scorePop('blue',1);aw('blue');rot(pF);}else{sM();log('扣球失误','m');scorePop('red',1);aw('red');}uUI();rR();},'扣球!',mod);}
+function dB(){clS();bt=false;const f=blk[0],mod=f?getM(f,false):{ps:38,pe:76,sp:1,label:'拦网'};if(f)showStats(f);qS(r=>{if(r==='perfect'){sS();if(f)sp(f.model.position.x,2,f.model.position.z,0x00ff88,20);mor.blue=Math.min(100,mor.blue+20+blk.length*5);log('🛡完美拦网!','p');scorePop('blue',1);commentary('perfectBlock');shakeCam(0.6);startReplay(2000);aw('blue');rot(pF);rR();}else if(r==='normal'){sP();mor.blue=Math.min(100,mor.blue+8);log('拦网撑起!转入进攻');st='attack';bt=true;hl(true);document.getElementById('hint').textContent='拦网撑起!选蛙扣球';}else{sM();log('拦网失败','m');commentary('missBlock');scorePop('red',1);aw('red');rR();}blk=[];},'拦网('+blk.length+'人)!',mod);}
 
 // ====== 点击 ======
 const RC=new T.Raycaster(),MS=new T.Vector2();
@@ -273,11 +302,66 @@ if(!localStorage.getItem('fv4_tut')){setTimeout(()=>sT(0),600);localStorage.setI
 // ====== 相机 ======
 const ctrl=new OrbitControls(C,R.domElement);ctrl.target.set(0,1,0);ctrl.enableDamping=true;ctrl.dampingFactor=0.15;ctrl.update();
 
-// ====== 渲染循环 (性能优化) ======
+// ====== NBA2K 风格效果 ======
+// 比分弹出
+function scorePop(team,pts){
+  const el=document.getElementById('score-pop');el.style.display='block';
+  el.textContent=(team==='blue'?'🟦':'🟥')+'+'+pts;
+  el.style.color=team==='blue'?'#4488ff':'#ff4444';
+  el.style.animation='none';el.offsetHeight;el.style.animation='sp 0.8s ease-out forwards';
+  setTimeout(()=>el.style.display='none',800);
+}
+// 激情解说
+const COM={
+  perfectBlock:['🛡 铜墙铁壁!!!','完美的拦网!','拒绝得分!','一夫当关!'],
+  perfectSpike:['💥 雷神之锤!!!','暴扣得分!','无可阻挡!','ACE!'],
+  perfectReceive:['🎯 精准一传!','教科书般的接球!','完美!'],
+  missBlock:['😱 拦网失误...','穿过去了!'],
+  missSpike:['💨 扣飞出界...','可惜了!'],
+  winSet:['🏆 拿下这一局!','势不可挡!','冠军相!'],
+};
+function commentary(type){
+  const msgs=COM[type];if(!msgs)return;
+  const msg=msgs[Math.floor(Math.random()*msgs.length)];
+  document.getElementById('com-text').textContent=msg;
+  document.getElementById('com-text').style.animation='none';document.getElementById('com-text').offsetHeight;
+  document.getElementById('com-text').style.animation='comIn 0.5s ease-out,comOut 0.5s 1.5s ease-in forwards';
+  document.getElementById('com-sub').textContent=type.includes('Spike')?'大力扣球':type.includes('Block')?'完美防守':'';
+  document.getElementById('commentary').style.display='block';
+  setTimeout(()=>document.getElementById('commentary').style.display='none',2000);
+}
+// 镜头震动
+let camShake=0;
+function shakeCam(i=0.8){camShake=Math.max(camShake,i);}
+// 慢动作回放
+let replayTimer=null;
+function startReplay(duration=2000){
+  const el=document.getElementById('replay-overlay');el.style.display='block';
+  bt=true;btS=0.08;
+  if(replayTimer)clearTimeout(replayTimer);
+  replayTimer=setTimeout(()=>{el.style.display='none';bt=false;btS=parseFloat(document.getElementById('slBullet').value<=2?'0.05':document.getElementById('slBullet').value<=3?'0.1':'0.15');},duration);
+}
+// 球员卡
+function showStats(f){
+  const el=document.getElementById('stats-card');el.style.display='block';
+  document.getElementById('sc-name').textContent=FN[f.type];
+  document.getElementById('sc-type').textContent=f.front?'前排'+f.pos+'号位':'后排'+f.pos+'号位';
+  const idx=pF.indexOf(f);const fm=idx>=0?forms[idx]:'attack';
+  const m=getM(f,false);
+  document.getElementById('sc-atk').textContent='绿区'+m.ps+'%-'+m.pe+'%';
+  document.getElementById('sc-def').textContent='速度'+m.sp.toFixed(1)+'x';
+  document.getElementById('sc-passive').textContent=m.label;
+  setTimeout(()=>el.style.display='none',3000);
+}
+
+// ====== 渲染循环 ======
 const clock=new T.Clock();let frameSkip=0;
 function anim(){
   requestAnimationFrame(anim);frameSkip=(frameSkip+1)%2;if(frameSkip===0)return;
   const dt=Math.min(clock.getDelta(),0.1);const btm=getBTMod();const ts=bt?btm:1;const eDt=dt*ts;
+
+  // 镜头震动衰减
+  if(camShake>0.001){C.position.x+=Math.sin(performance.now()*0.05)*camShake;C.position.y+=Math.cos(performance.now()*0.07)*camShake*0.5;camShake*=0.9;}
 
   if(qOn){qV+=qD*qSP*160*eDt;if(qV>=100){qV=100;qD=-1}if(qV<=0){qV=0;qD=1}const f=document.getElementById('qte-f');if(f){f.style.width=qV+'%';f.style.background=(qV>=qPS&&qV<=qPE)?'linear-gradient(90deg,#0a4,#0f8,#0a4)':(qV>=qPS-14&&qV<=qPE+10)?'linear-gradient(90deg,#c60,#fa0,#c60)':'linear-gradient(90deg,#c00,#f44,#c00)';}}
 
