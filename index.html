@@ -133,21 +133,75 @@ const LU=['bouncy','power','beauty','speed','normal','cheer'];
 const NXT={1:6,6:5,5:4,4:3,3:2,2:1};
 const POS=[{id:4,x:-6,z:2.5,f:1},{id:3,x:0,z:2.5,f:1},{id:2,x:6,z:2.5,f:1},{id:5,x:-6,z:7,f:0},{id:6,x:0,z:7,f:0},{id:1,x:6,z:7,f:0}];
 
-// ====== 青蛙模型 (简化性能) ======
-function mkF(c){
-  const g=new T.Group(),m=new T.MeshStandardMaterial({color:c,roughness:0.3});
-  g.add(new T.Mesh(new T.SphereGeometry(0.4,10,8),m).translateY(0.5));
-  g.add(new T.Mesh(new T.SphereGeometry(0.24,8,6),m).translateY(1.05).translateZ(0.05));
+// ====== 独特青蛙模型 (每种不同外观) ======
+function mkF(type,c){
+  const g=new T.Group();
+  const mat=new T.MeshStandardMaterial({color:c,roughness:0.25});
+  const dark=new T.MeshStandardMaterial({color:new T.Color(c).multiplyScalar(0.6),roughness:0.3});
+
+  switch(type){
+    case'power':{ // 大力蛙 - 肌肉型,大身体
+      g.add(new T.Mesh(new T.SphereGeometry(0.42,12,10),mat).translateY(0.5));
+      g.add(new T.Mesh(new T.SphereGeometry(0.28,10,8),mat).translateY(1.1).translateZ(0.02));
+      // 粗壮手臂
+      [-0.2,0.2].forEach(s=>{g.add(new T.Mesh(new T.CylinderGeometry(0.08,0.1,0.4,6),mat).translateX(s).translateY(0.55).translateZ(0.1));});
+      break;}
+    case'bouncy':{ // 弹力蛙 - 瘦高,弹簧腿
+      g.add(new T.Mesh(new T.SphereGeometry(0.32,12,10),mat).translateY(0.55));
+      g.add(new T.Mesh(new T.SphereGeometry(0.22,10,8),mat).translateY(1.08).translateZ(0.02));
+      // 长腿
+      [-0.12,0.12].forEach(s=>{g.add(new T.Mesh(new T.CylinderGeometry(0.06,0.06,0.5,6),mat).translateX(s).translateY(0.25).translateZ(0.05));});
+      break;}
+    case'speed':{ // 速度蛙 - 流线型,小身体
+      g.add(new T.Mesh(new T.SphereGeometry(0.34,12,10),mat).translateY(0.48));
+      g.add(new T.Mesh(new T.SphereGeometry(0.2,10,8),mat).translateY(1.0).translateZ(0.08));
+      // 小脚
+      [-0.14,0.14].forEach(s=>{g.add(new T.Mesh(new T.SphereGeometry(0.07,6,5),dark).translateX(s).translateY(0.15).translateZ(0.15));});
+      break;}
+    case'beauty':{ // 美女蛙 - 蝴蝶结
+      g.add(new T.Mesh(new T.SphereGeometry(0.36,12,10),mat).translateY(0.5));
+      g.add(new T.Mesh(new T.SphereGeometry(0.24,10,8),mat).translateY(1.05).translateZ(0.02));
+      // 蝴蝶结
+      [-0.15,0.15].forEach(s=>{g.add(new T.Mesh(new T.SphereGeometry(0.06,5,5),new T.MeshStandardMaterial({color:0xff88cc})).translateX(s).translateY(1.25).translateZ(0.15));});
+      break;}
+    case'cheer':{ // 加油蛙 - 拿喇叭
+      g.add(new T.Mesh(new T.SphereGeometry(0.36,12,10),mat).translateY(0.5));
+      g.add(new T.Mesh(new T.SphereGeometry(0.24,10,8),mat).translateY(1.05).translateZ(0.02));
+      // 小喇叭
+      g.add(new T.Mesh(new T.CylinderGeometry(0.03,0.06,0.2,6),new T.MeshStandardMaterial({color:0xffaa00,metalness:0.6})).translateX(0.3).translateY(0.9).translateZ(0.15));
+      break;}
+    case'black':{ // 黑拳蛙 - 拳击手套
+      g.add(new T.Mesh(new T.SphereGeometry(0.38,12,10),mat).translateY(0.5));
+      g.add(new T.Mesh(new T.SphereGeometry(0.24,10,8),mat).translateY(1.05).translateZ(0.02));
+      // 红色拳套
+      [-0.28,0.28].forEach(s=>{g.add(new T.Mesh(new T.SphereGeometry(0.09,6,5),new T.MeshStandardMaterial({color:0xff2222})).translateX(s).translateY(0.55).translateZ(0.2));});
+      break;}
+    case'coach':{ // 教练蛙 - 帽子
+      g.add(new T.Mesh(new T.SphereGeometry(0.36,12,10),mat).translateY(0.5));
+      g.add(new T.Mesh(new T.SphereGeometry(0.24,10,8),mat).translateY(1.05).translateZ(0.02));
+      // 帽子
+      g.add(new T.Mesh(new T.CylinderGeometry(0.12,0.15,0.08,8),new T.MeshStandardMaterial({color:0x334466})).translateY(1.25));
+      g.add(new T.Mesh(new T.CylinderGeometry(0.18,0.12,0.04,8),new T.MeshStandardMaterial({color:0x334466})).translateY(1.3));
+      break;}
+    default:{ // 普通蛙 - 基础体型
+      g.add(new T.Mesh(new T.SphereGeometry(0.38,12,10),mat).translateY(0.5));
+      g.add(new T.Mesh(new T.SphereGeometry(0.24,10,8),mat).translateY(1.05).translateZ(0.02));
+    }
+  }
+  // 所有青蛙都有大眼睛
   const eG=new T.SphereGeometry(0.08,5,5),eM=new T.MeshBasicMaterial({color:0xffffff}),pG=new T.SphereGeometry(0.05,4,4),pM=new T.MeshBasicMaterial({color:0x0});
   [-0.12,0.12].forEach(s=>{g.add(new T.Mesh(eG,eM).translateX(s).translateY(1.13).translateZ(0.2));g.add(new T.Mesh(pG,pM).translateX(s).translateY(1.13).translateZ(0.25));});
+  // 选中光环
   const r=new T.Mesh(new T.RingGeometry(0.48,0.55,20),new T.MeshBasicMaterial({color:0x00ff88,side:T.DoubleSide,visible:false}));r.rotation.x=-Math.PI/2;r.position.y=0.02;g.add(r);g.userData.ring=r;
+  // 动画状态
+  g.userData.anim={jump:0,spike:0,receive:0,baseY:0};
   return g;
 }
 const pF=[],aF=[];
 function crAll(){
   [...pF,...aF].forEach(f=>S.remove(f.model));pF.length=0;aF.length=0;
-  POS.forEach((p,i)=>{const t=LU[i],m=mkF(FC[t]);m.position.set(p.x,0,p.z);m.scale.set(1.4,1.4,1.4);S.add(m);pF.push({model:m,pos:p.id,type:t,front:p.f,x:p.x,z:p.z,sel:false,side:'blue',form:'attack'});});
-  POS.forEach((p,i)=>{const m=mkF(0x88cc88);m.position.set(p.x,0,-p.z);m.rotation.y=Math.PI;m.scale.set(1.4,1.4,1.4);S.add(m);aF.push({model:m,pos:p.id,type:'normal',front:p.f,x:p.x,z:-p.z,sel:false,side:'red'});});
+  POS.forEach((p,i)=>{const t=LU[i],m=mkF(t,FC[t]);m.position.set(p.x,0,p.z);m.scale.set(1.4,1.4,1.4);m.userData.anim.baseY=0;S.add(m);pF.push({model:m,pos:p.id,type:t,front:p.f,x:p.x,z:p.z,sel:false,side:'blue',form:'attack'});});
+  POS.forEach((p,i)=>{const t=aiD==='hard'?['bouncy','power','beauty','speed','normal','cheer'][i]:'normal';const m=mkF(t,FC[t]||0x88cc88);m.position.set(p.x,0,-p.z);m.rotation.y=Math.PI;m.scale.set(1.4,1.4,1.4);m.userData.anim.baseY=0;S.add(m);aF.push({model:m,pos:p.id,type:t,front:p.f,x:p.x,z:-p.z,sel:false,side:'red'});});
   log('✅ 蓝队'+pF.length+'只 + 红队'+aF.length+'只 = 12只青蛙','p');
 }
 crAll();
@@ -558,14 +612,61 @@ function showStats(f){
   setTimeout(()=>el.style.display='none',3000);
 }
 
+// ====== 动画系统 ======
+// 青蛙跳跃动画
+function frogJump(f,h=2.5){f.model.userData.anim.jump=1;f.model.userData.anim.jumpH=h;}
+function frogSpike(f){f.model.userData.anim.spike=1;}
+function frogReceive(f){f.model.userData.anim.receive=1;}
+
+// 更新青蛙动画
+function updateFrogAnims(dt){
+  [...pF,...aF].forEach(f=>{
+    const a=f.model.userData.anim;if(!a)return;
+    // 跳跃动画
+    if(a.jump>0.01){a.jump-=dt*3;const y=Math.sin(a.jump*Math.PI)*a.jumpH;f.model.position.y=a.baseY+y;if(a.jump<0.05){a.jump=0;f.model.position.y=a.baseY;}}
+    // 扣球动画
+    if(a.spike>0.01){a.spike-=dt*3.5;f.model.rotation.x=-Math.sin(a.spike*Math.PI)*0.8;if(a.spike<0.05){a.spike=0;f.model.rotation.x=0;}}
+    // 接球动画
+    if(a.receive>0.01){a.receive-=dt*3;f.model.position.z+=Math.sin(a.receive*Math.PI)*0.3*(f.side==='blue'?1:-1);if(a.receive<0.05){a.receive=0;}}
+  });
+}
+
+// 球轨迹
+let ballTrail=[];
+let ballTarget=null,ballAnim=0;
+
+function animateBallTo(tx,ty,tz,dur=0.5){
+  ballTarget={x:tx,y:ty,z:tz,fromX:Ball.position.x,fromY:Ball.position.y,fromZ:Ball.position.z,dur,elapsed:0};
+}
+
 // ====== 渲染循环 ======
 const clock=new T.Clock();let frameSkip=0;
 function anim(){
-  requestAnimationFrame(anim);frameSkip=(frameSkip+1)%2;if(frameSkip===0)return;
+  requestAnimationFrame(anim);
   const dt=Math.min(clock.getDelta(),0.1);const btm=getBTMod();const ts=bt?btm:1;const eDt=dt*ts;
 
   // 镜头震动衰减
   if(camShake>0.001){C.position.x+=Math.sin(performance.now()*0.05)*camShake;C.position.y+=Math.cos(performance.now()*0.07)*camShake*0.5;camShake*=0.9;}
+
+  // 青蛙动画
+  updateFrogAnims(dt);
+
+  // 球动画
+  if(ballTarget){
+    ballTarget.elapsed+=dt;
+    const t=Math.min(1,ballTarget.elapsed/ballTarget.dur);
+    const ease=t<0.5?2*t*t:-1+(4-2*t)*t;
+    Ball.position.set(
+      ballTarget.fromX+(ballTarget.x-ballTarget.fromX)*ease,
+      ballTarget.fromY+(ballTarget.y-ballTarget.fromY)*ease+Math.sin(t*Math.PI)*3,
+      ballTarget.fromZ+(ballTarget.z-ballTarget.fromZ)*ease
+    );
+    // 球轨迹
+    ballTrail.push({x:Ball.position.x,y:Ball.position.y,z:Ball.position.z,life:1});
+    if(t>=1)ballTarget=null;
+  }
+  // 轨迹衰减
+  ballTrail=ballTrail.filter(p=>{p.life-=dt*2;return p.life>0;});
 
   if(qOn){qV+=qD*qSP*160*eDt;if(qV>=100){qV=100;qD=-1}if(qV<=0){qV=0;qD=1}const f=document.getElementById('qte-f');if(f){f.style.width=qV+'%';f.style.background=(qV>=qPS&&qV<=qPE)?'linear-gradient(90deg,#0a4,#0f8,#0a4)':(qV>=qPS-14&&qV<=qPE+10)?'linear-gradient(90deg,#c60,#fa0,#c60)':'linear-gradient(90deg,#c00,#f44,#c00)';}}
 
