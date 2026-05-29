@@ -39,7 +39,7 @@
     <button style="background:#a33;min-width:45px;font-size:10px;" id="bR">↺重置</button>
   </div>
 </div>
-<div id="fBtns" style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);display:flex;gap:3px;z-index:10"></div>
+<div id="fBtns" style="position:absolute;bottom:88px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:10;background:rgba(0,0,0,0.4);padding:4px 8px;border-radius:8px;"></div>
 <div id="log"></div>
 <div id="qte"><div id="qte-o"><div id="qte-p" style="left:38%;width:38%"></div><div id="qte-f"></div></div><div id="qte-l">␣ 空格确认</div></div>
 <!-- NBA2K 风格 UI -->
@@ -351,7 +351,7 @@ document.getElementById('selAI').addEventListener('change',e=>{aiD=e.target.valu
 document.getElementById('slBullet').addEventListener('input',e=>{btS=[0.05,0.1,0.15,0.25][parseInt(e.target.value)-1];});
 
 function tgF(i){forms[i]=forms[i]==='attack'?'defense':'attack';log(FN[pF[i].type]+' → '+(forms[i]==='attack'?'⚔攻':'🛡守'));}
-function bFB(){const d=document.getElementById('fBtns');d.innerHTML='';LU.forEach((t,i)=>{const b=document.createElement('button');b.style.cssText='padding:2px 5px;border:none;border-radius:3px;font-size:8px;cursor:pointer;color:#fff';b.style.background=forms[i]==='attack'?'#611':'#116';b.textContent=(i+1)+(forms[i]==='attack'?'⚔':'🛡');b.title=FN[t];b.addEventListener('click',()=>{tgF(i);bFB();});d.appendChild(b);});}bFB();
+function bFB(){const d=document.getElementById('fBtns');d.innerHTML='';LU.forEach((t,i)=>{const b=document.createElement('button');b.style.cssText='padding:4px 8px;border:none;border-radius:5px;font-size:10px;cursor:pointer;color:#fff;transition:all 0.15s;display:flex;align-items:center;gap:3px';b.style.background=forms[i]==='attack'?'linear-gradient(135deg,#822,#a44)':'linear-gradient(135deg,#226,#448)';b.innerHTML='<span style="font-size:12px;">'+(forms[i]==='attack'?'⚔':'🛡')+'</span> '+(i+1)+'号 '+FN[t].slice(0,2);b.title=FN[t]+' - 点击切换攻守形态';b.addEventListener('click',()=>{tgF(i);bFB();});d.appendChild(b);});}bFB();
 
 // ====== 主菜单 & 选人 & 设置 ======
 let selectedRoster = [...LU]; // 默认全选
