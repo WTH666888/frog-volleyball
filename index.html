@@ -140,7 +140,8 @@ function crAll(){
   log('✅ 蓝队'+pF.length+'只 + 红队'+aF.length+'只 = 12只青蛙','p');
 }
 crAll();
-// 初始只显示菜单,不开始游戏
+// 初始只显示菜单,不开始游戏。画布不响应点击
+R.domElement.style.pointerEvents='none';
 document.getElementById('hint').textContent='';
 
 // ====== 粒子 (性能优化) ======
@@ -427,7 +428,10 @@ function startSinglePlayer(){
 function startMultiplayer(){
   document.getElementById('main-menu').style.display='none';
   document.getElementById('multi-st').textContent='联机模式';
-  startGameNow();
+  R.domElement.style.pointerEvents='auto';
+  sc={blue:0,red:0};sets={blue:0,red:0};cSet=1;mo=false;
+  gameStarted=true;
+  rR();
 }
 
 function showSettings(){
@@ -453,10 +457,21 @@ function backToMenu(){
   document.getElementById('settings-screen').style.display='none';
   document.getElementById('main-menu').style.display='flex';
 }
+// 暴露到全局(window)供onclick调用
+window.startSinglePlayer=startSinglePlayer;
+window.startMultiplayer=startMultiplayer;
+window.showSettings=showSettings;
+window.randomRoster=randomRoster;
+window.confirmRoster=confirmRoster;
+window.backToMenu=backToMenu;
+window.saveSettings=saveSettings;
 
 function startGameNow(){
   gameStarted=true;
   document.getElementById('main-menu').style.display='none';
+  document.getElementById('roster-screen').style.display='none';
+  document.getElementById('settings-screen').style.display='none';
+  R.domElement.style.pointerEvents='auto';
   document.getElementById('hint').textContent='按空格发球 | 123战术 | T暂停 | E传送';
   rR();
   if(!localStorage.getItem('fv4_tut')){setTimeout(()=>sT(0),1000);localStorage.setItem('fv4_tut','1');}
