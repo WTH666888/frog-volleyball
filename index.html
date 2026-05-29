@@ -195,56 +195,69 @@ if (!localStorage.getItem('fv_tutorial_done')) {
 const LEADERBOARD_BLOB_ID = 'frog-volleyball-leaderboard-v1';
 let cloudLeaderboard = [];
 
+async function fetchWithTimeout(url, opts={}, ms=8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    const resp = await fetch(url, {...opts, signal: controller.signal});
+    clearTimeout(timer);
+    return resp;
+  } catch(e) { clearTimeout(timer); throw e; }
+}
+
 async function fetchCloudLeaderboard() {
   const savedUrl = localStorage.getItem('fv_leaderboard_url');
-  try {
-    if (savedUrl) {
-      const resp = await fetch(savedUrl, {signal: AbortSignal.timeout(5000)});
+  if (savedUrl) {
+    try {
+      const resp = await fetchWithTimeout(savedUrl);
       if (resp.ok) {
-        cloudLeaderboard = await resp.json();
-        if (cloudLeaderboard.length > 0) {
-          log('🌐 云端排行已加载 ('+cloudLeaderboard.length+'条)', 'p');
+        const data = await resp.json();
+        if (Array.isArray(data) && data.length > 0) {
+          cloudLeaderboard = data;
+          log('🌐 云端排行已加载('+cloudLeaderboard.length+'条)', 'p');
           showRanking();
+          return;
         }
-        return;
       }
-    }
-  } catch(e) { /* will create new */ }
+      // 404 or invalid - clear and create new
+      if (resp.status === 404) localStorage.removeItem('fv_leaderboard_url');
+    } catch(e) { /* network error, will create new */ }
+  }
 
   // 创建新blob
   try {
-    const resp = await fetch('https://jsonblob.com/api/jsonBlob', {
+    const resp = await fetchWithTimeout('https://jsonblob.com/api/jsonBlob', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify([]),
-      signal: AbortSignal.timeout(5000)
+      body: JSON.stringify([])
     });
     if (resp.ok) {
-      const loc = resp.headers.get('Location');
+      let loc = resp.headers.get('Location');
       if (loc) {
+        if (!loc.startsWith('http')) loc = 'https://jsonblob.com' + loc;
         localStorage.setItem('fv_leaderboard_url', loc);
         log('🌐 云端排行榜已就绪', 'p');
       }
       cloudLeaderboard = [];
+    } else {
+      log('🌐 创建云端排行失败('+resp.status+'),离线模式', 'm');
     }
   } catch(e2) {
-    log('🌐 云端排行离线模式 (网络不可用)', 'm');
+    log('🌐 网络不可用,排行仅保存在本地', 'm');
   }
 }
 
 async function uploadToLeaderboard(entry) {
   const url = localStorage.getItem('fv_leaderboard_url');
   if (!url) {
-    log('📋 排行已保存在本地', 'p');
+    log('📋 排行已保存(本地)', 'p');
     return;
   }
   try {
-    // 先获取最新
-    const resp = await fetch(url, {signal: AbortSignal.timeout(5000)});
+    const resp = await fetchWithTimeout(url);
     if (resp.ok) {
       let remote = await resp.json();
       if (!Array.isArray(remote)) remote = [];
-      // 合并
       const existing = remote.find(e => e.name === entry.name);
       if (existing) {
         existing.games += entry.games;
@@ -256,19 +269,17 @@ async function uploadToLeaderboard(entry) {
       }
       remote.sort((a,b) => b.points - a.points);
       remote = remote.slice(0, 20);
-      // 上传
-      await fetch(url, {
+      await fetchWithTimeout(url, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(remote),
-        signal: AbortSignal.timeout(5000)
+        body: JSON.stringify(remote)
       });
       cloudLeaderboard = remote;
       log('🏆 排行已同步到云端!', 'p');
       showRanking();
     }
   } catch(e) {
-    log('📋 云端暂不可用,排行已保存在本地', 'm');
+    log('📋 云端暂不可用,排行已保存(本地)', 'm');
     showRanking();
   }
 }
