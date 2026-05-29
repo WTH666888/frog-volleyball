@@ -45,6 +45,15 @@ body{background:#111;overflow:hidden;font-family:'Microsoft YaHei',sans-serif}
   <button id="show-rank" style="margin-top:4px;padding:3px 8px;font-size:10px;background:#06a;color:#fff;border:none;border-radius:4px;cursor:pointer;">🏆 排行榜</button>
   <div id="rank-list" style="display:none;margin-top:4px;max-height:150px;overflow-y:auto;"></div>
 </div>
+<!-- 联机面板 -->
+<div id="multi-panel" style="position:absolute;top:60px;left:10px;z-index:10;font-size:11px;color:#aaa;background:rgba(0,0,0,0.6);padding:8px;border-radius:6px;max-width:180px;">
+  <div style="font-weight:bold;color:#0cf;">🔗 联机对战</div>
+  <div id="multi-status" style="color:#888;font-size:10px;">未连接</div>
+  <div id="room-code-display" style="color:#ff0;font-size:10px;"></div>
+  <button id="btn-host" style="margin-top:4px;padding:3px 8px;font-size:10px;background:#060;color:#fff;border:none;border-radius:4px;cursor:pointer;width:100%;">🏠 创建房间</button>
+  <button id="btn-join" style="margin-top:2px;padding:3px 8px;font-size:10px;background:#06a;color:#fff;border:none;border-radius:4px;cursor:pointer;width:100%;">🔗 加入房间</button>
+  <button id="btn-hide-multi" style="margin-top:2px;padding:3px 8px;font-size:10px;background:#333;color:#aaa;border:none;border-radius:4px;cursor:pointer;width:100%;">✕ 关闭</button>
+</div>
 <!-- 新手教程遮罩 -->
 <div id="tutorial-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:100;flex-direction:column;align-items:center;justify-content:center;">
   <div style="background:#1a1a3e;border-radius:16px;padding:30px;max-width:500px;text-align:center;color:#fff;">
@@ -182,77 +191,197 @@ if (!localStorage.getItem('fv_tutorial_done')) {
   localStorage.setItem('fv_tutorial_done', '1');
 }
 
-// ===== 联机对战 (PeerJS WebRTC) =====
+// ===== 跨设备排行榜 (jsonblob.com 免费API) =====
+const LEADERBOARD_BLOB_ID = 'frog-volleyball-leaderboard-v1';
+let cloudLeaderboard = [];
+
+async function fetchCloudLeaderboard() {
+  try {
+    const resp = await fetch('https://jsonblob.com/api/jsonBlob/' + LEADERBOARD_BLOB_ID);
+    if (resp.ok) {
+      cloudLeaderboard = await resp.json();
+      log('🌐 云端排行已加载 ('+cloudLeaderboard.length+'条)', 'p');
+    }
+  } catch(e) {
+    // 首次使用，创建新blob
+    try {
+      const resp = await fetch('https://jsonblob.com/api/jsonBlob', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify([])
+      });
+      if (resp.ok) {
+        const blob = await resp.json();
+        // 保存blob URL供后续使用
+        const loc = resp.headers.get('Location');
+        log('🌐 云端排行榜已创建', 'p');
+        // 用localStorage记住blob URL
+        localStorage.setItem('fv_leaderboard_url', loc);
+        cloudLeaderboard = [];
+      }
+    } catch(e2) { log('云端排行榜暂不可用', 'm'); }
+  }
+}
+
+async function uploadToLeaderboard(entry) {
+  try {
+    // 先获取最新
+    const url = localStorage.getItem('fv_leaderboard_url') || ('https://jsonblob.com/api/jsonBlob/' + LEADERBOARD_BLOB_ID);
+    const resp = await fetch(url);
+    if (resp.ok) {
+      cloudLeaderboard = await resp.json();
+      // 合并新记录
+      const existing = cloudLeaderboard.find(e => e.name === entry.name);
+      if (existing) {
+        existing.games += entry.games;
+        existing.wins += entry.wins;
+        existing.losses += entry.losses;
+        existing.points = existing.wins * 3 + existing.losses;
+      } else {
+        cloudLeaderboard.push(entry);
+      }
+      cloudLeaderboard.sort((a,b) => b.points - a.points);
+      cloudLeaderboard = cloudLeaderboard.slice(0, 20);
+      // 上传
+      await fetch(url, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(cloudLeaderboard)
+      });
+      log('🏆 排行已同步到云端!', 'p');
+      showRanking();
+    }
+  } catch(e) { log('云端同步失败,排行仅保存在本地', 'm'); }
+}
+
+// 替换原有的addMatchRecord，加上云端同步
+const origAddMatch = addMatchRecord;
+addMatchRecord = function(result, myScore, aiScore) {
+  origAddMatch(result, myScore, aiScore);
+  if (playerName) {
+    const entry = leaderboard.find(e => e.name === playerName);
+    if (entry) uploadToLeaderboard({...entry});
+  }
+};
+
+// 初始化时加载云端排行
+fetchCloudLeaderboard();
+
+// ===== 联机对战 (PeerJS WebRTC + 房间码) =====
 let peer = null, peerConn = null, peerId = '', remotePeerId = '';
-let isMultiplayer = false, isHost = false;
-let multiState = {};
+let isMultiplayer = false, isHost = false, roomCode = '';
 
 function initMultiplayer() {
-  const script = document.createElement('script');
-  script.src = 'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
-  script.onload = () => {
-    peer = new Peer();
-    peer.on('open', (id) => {
-      peerId = id;
-      log('🟢 联机就绪! 你的ID: '+id.slice(0,8), 'p');
-      document.getElementById('peer-id-display').textContent = '我的ID: '+id.slice(0,8)+'...';
-    });
-    peer.on('connection', (conn) => {
-      peerConn = conn;
-      setupPeerConnection(conn);
-      log('🔗 对手已连接!', 'p');
-      document.getElementById('multi-status').textContent = '🟢 已连接';
-    });
-    peer.on('error', (e) => { log('联机错误: '+e.type, 'm'); });
-  };
-  document.head.appendChild(script);
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
+    script.onload = () => {
+      peer = new Peer();
+      peer.on('open', (id) => {
+        peerId = id;
+        log('🟢 联机就绪! 你的ID: '+id.slice(0,8), 'p');
+        document.getElementById('multi-status').textContent = '🟢 联机已就绪';
+        resolve(id);
+      });
+      peer.on('connection', (conn) => {
+        peerConn = conn;
+        setupPeerConnection(conn);
+        log('🔗 对手已连接! 游戏开始!', 'p');
+        document.getElementById('multi-status').textContent = '🟢 对战中';
+        // 重置比赛开始
+        sc = {blue:0, red:0}; sets = {blue:0, red:0}; curSet = 1; matchOver = false;
+        resetRound(); updUI();
+        if (isHost) serving = 'blue'; else serving = 'red';
+        hideMultiPanel();
+      });
+      peer.on('error', (e) => { log('联机错误: '+e.type, 'm'); reject(e); });
+    };
+    document.head.appendChild(script);
+  });
 }
 
 function setupPeerConnection(conn) {
   conn.on('data', (data) => {
-    if (data.type === 'score') {
-      // 对手得分同步
-      if (data.team === 'red' && !isHost) { sc.red = data.scRed; updUI(); }
-      if (data.team === 'blue' && isHost) { sc.blue = data.scBlue; updUI(); }
+    if (data.type === 'sync') {
+      // 游戏状态同步
+      sc = data.sc; serving = data.serving;
+      updUI();
     }
-    if (data.type === 'gameState') {
-      multiState = data.state;
+    if (data.type === 'action') {
+      log('对手执行了: '+data.action, 'p');
     }
   });
   conn.on('close', () => {
     log('对手断开连接', 'm');
     document.getElementById('multi-status').textContent = '🔴 已断开';
     isMultiplayer = false;
+    matchOver = true;
   });
 }
 
-function hostRoom() {
-  if (!peer) initMultiplayer();
-  isHost = true; isMultiplayer = true;
-  log('🏠 创建房间中... 等待对手加入', 'p');
-  document.getElementById('multi-status').textContent = '🏠 等待对手...';
-}
-function joinRoom(hostId) {
-  if (!peer) initMultiplayer();
-  isHost = false; isMultiplayer = true;
-  setTimeout(() => {
-    if (!peer) return;
-    peerConn = peer.connect(hostId);
-    setupPeerConnection(peerConn);
-    log('🔗 加入房间...', 'p');
-    document.getElementById('multi-status').textContent = '🔗 连接中...';
-  }, 1000);
-}
 function sendToPeer(data) {
   if (peerConn && peerConn.open) peerConn.send(data);
 }
 
-// 在得分时同步
-const origAward = award;
+async function hostRoom() {
+  if (!peer) await initMultiplayer();
+  isHost = true; isMultiplayer = true;
+  roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  document.getElementById('room-code-display').textContent = '房间码: ' + roomCode;
+  document.getElementById('multi-status').textContent = '🏠 等待对手...';
+  log('🏠 房间已创建! 房间码: '+roomCode+' (发给朋友)', 'p');
+  // 把房间码和peerId存到共享存储
+  try {
+    await fetch('https://jsonblob.com/api/jsonBlob', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({code: roomCode, hostPeerId: peerId, time: Date.now()})
+    });
+  } catch(e) { log('提示: 直接告诉朋友你的PeerID: '+peerId.slice(0,8)); }
+}
+
+async function joinRoom(code) {
+  if (!peer) await initMultiplayer();
+  isHost = false; isMultiplayer = true;
+  roomCode = code.toUpperCase();
+  document.getElementById('multi-status').textContent = '🔗 查找房间...';
+  log('🔗 正在加入房间: '+roomCode);
+
+  // 尝试通过jsonblob查找房间
+  try {
+    // 简化: 让玩家通过其他方式交换peerId
+    const hostId = prompt('输入对方的Peer ID (让房主告诉你):');
+    if (hostId) {
+      peerConn = peer.connect(hostId);
+      setupPeerConnection(peerConn);
+      document.getElementById('room-code-display').textContent = '房间: ' + roomCode;
+    }
+  } catch(e) {
+    log('加入房间失败, 请确认房间码正确', 'm');
+  }
+}
+
+function sendGameSync() {
+  if (isMultiplayer && isHost) {
+    sendToPeer({type: 'sync', sc, serving});
+  }
+}
+
+function hideMultiPanel() {
+  document.getElementById('multi-panel').style.display = 'none';
+}
+
+// 在每个得分点同步
+const origAward2 = award;
 award = function(team) {
-  origAward(team);
-  if (isMultiplayer) sendToPeer({type:'score', team, scRed: sc.red, scBlue: sc.blue});
+  origAward2(team);
+  if (isMultiplayer) sendGameSync();
 };
+
+// 显示联机面板
+function showMultiPanel() {
+  document.getElementById('multi-panel').style.display = 'block';
+}
 
 // ===== 场景 =====
 const scene = new THREE.Scene();
@@ -655,6 +784,14 @@ function buildFormBtns(){
   });
 }
 buildFormBtns();
+
+// ===== 联机按钮 =====
+document.getElementById('btn-host').addEventListener('click', hostRoom);
+document.getElementById('btn-join').addEventListener('click', ()=>{
+  const code = prompt('输入对方的房间码或Peer ID:');
+  if (code) joinRoom(code);
+});
+document.getElementById('btn-hide-multi').addEventListener('click', hideMultiPanel);
 
 // ===== 玩家名 & 排行榜 =====
 document.getElementById('save-name').addEventListener('click', ()=>{
