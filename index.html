@@ -202,6 +202,7 @@ function mkF(type,c){
   g.userData.anim={jump:0,spike:0,receive:0,baseY:0};
   return g;
 }
+let aiD='normal',btS=0.15; // crAll需要的变量,必须前面
 const pF=[],aF=[];
 function crAll(){
   [...pF,...aF].forEach(f=>S.remove(f.model));pF.length=0;aF.length=0;
@@ -219,10 +220,9 @@ let pts=[];
 function sp(x,y,z,c,n=12){for(let i=0;i<n;i++){const g=new T.SphereGeometry(0.04,3,3),m=new T.MeshBasicMaterial({color:c,transparent:true,opacity:1});const p=new T.Mesh(g,m);p.position.set(x,y,z);p.userData={vx:(Math.random()-0.5)*2.5,vy:Math.random()*3+1.5,vz:(Math.random()-0.5)*2.5,life:1,decay:0.03+Math.random()*0.04};S.add(p);pts.push(p);}}
 
 // ====== 游戏状态 ======
-let aiD='normal'; // 必须在crAll()之前声明!
 let st='idle',sv='blue',sc={blue:0,red:0},mor={blue:0,red:0},sets={blue:0,red:0},cSet=1,mo=false;
 let qOn=false,qV=0,qD=1,qCB=null,qPS=38,qPE=76,qSP=1;
-let btS=0.15,bt=false,blk=[],tac='power',tc=0,buff=null,tos={blue:2,red:2},blkCd=0;
+let bt=false,blk=[],tac='power',tc=0,buff=null,tos={blue:2,red:2},blkCd=0;
 let forms={};LU.forEach((_,i)=>forms[i]='attack');
 let bench=['normal','speed','black','coach'].map(t=>({type:t,name:FN[t]}));
 let tutS=0;
