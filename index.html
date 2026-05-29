@@ -112,6 +112,9 @@
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import*as T from'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';
+// 错误捕获
+window.onerror=(m,u,l,c,e)=>{document.body.innerHTML+='<div style=\"position:fixed;top:0;left:0;width:100%;background:#c00;color:#fff;padding:20px;z-index:9999;font-size:14px;\"><b>JS Error:</b> '+m+'<br><small>Line: '+l+'</small></div>';};
+try{
 
 // ====== 场景 (性能优化版) ======
 const S=new T.Scene();S.background=new T.Color(0x3a5a3a);S.fog=new T.Fog(0x3a5a3a,30,80);
@@ -702,4 +705,5 @@ function anim(){
 anim();
 // 游戏从菜单开始,不自动发球
 log('🐸 青蛙排球 v4.2 就绪! 请从菜单选择游戏模式');
+}catch(e){document.body.innerHTML+='<div style=\"position:fixed;top:0;left:0;width:100%;background:#c00;color:#fff;padding:30px;z-index:9999;font-size:14px;\"><b>Module Error:</b> '+e.message+'<br><pre style=\"font-size:11px;\">'+e.stack+'</pre></div>';}
 </script></body></html>
