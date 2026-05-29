@@ -45,6 +45,20 @@ body{background:#111;overflow:hidden;font-family:'Microsoft YaHei',sans-serif}
   <button id="show-rank" style="margin-top:4px;padding:3px 8px;font-size:10px;background:#06a;color:#fff;border:none;border-radius:4px;cursor:pointer;">🏆 排行榜</button>
   <div id="rank-list" style="display:none;margin-top:4px;max-height:150px;overflow-y:auto;"></div>
 </div>
+<!-- 新手教程遮罩 -->
+<div id="tutorial-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:100;flex-direction:column;align-items:center;justify-content:center;">
+  <div style="background:#1a1a3e;border-radius:16px;padding:30px;max-width:500px;text-align:center;color:#fff;">
+    <div style="font-size:48px;" id="tut-emoji">🐸</div>
+    <h2 style="margin:10px 0;color:#ffaa00;" id="tut-title">欢迎来到青蛙排球!</h2>
+    <p style="color:#ccc;font-size:14px;line-height:1.8;margin:10px 0;" id="tut-text"></p>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;">
+      <button id="tut-prev" style="padding:10px 20px;background:#444;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;">← 上一步</button>
+      <button id="tut-next" style="padding:10px 20px;background:#e94560;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;">下一步 →</button>
+      <button id="tut-skip" style="padding:10px 20px;background:#333;color:#aaa;border:none;border-radius:8px;cursor:pointer;font-size:14px;">跳过教程</button>
+    </div>
+  </div>
+</div>
+
 <div id="qte-bar">
   <div id="qte-outer"><div id="qte-perfect" style="left:38%;width:38%"></div><div id="qte-fill"></div></div>
   <div id="qte-label">␣ 空格确认</div>
@@ -57,7 +71,34 @@ body{background:#111;overflow:hidden;font-family:'Microsoft YaHei',sans-serif}
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-// ===== 数据库 (localStorage) =====
+// ===== Firebase 配置 (等你创建Firebase项目后替换) =====
+const FIREBASE_ENABLED = false; // 改为true并填入配置即可启用跨设备功能
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "YOUR_APP_ID",
+  databaseURL: "https://YOUR_PROJECT.firebaseio.com"
+};
+
+// 如果Firebase启用，加载SDK
+if (FIREBASE_ENABLED) {
+  const fbScript1 = document.createElement('script');
+  fbScript1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
+  document.head.appendChild(fbScript1);
+  const fbScript2 = document.createElement('script');
+  fbScript2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js';
+  document.head.appendChild(fbScript2);
+  const fbScript3 = document.createElement('script');
+  fbScript3.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
+  document.head.appendChild(fbScript3);
+}
+
+let firebaseDB = null; // 跨设备排行榜 + 联机用
+
+// ===== 数据库 (localStorage + Firebase) =====
 let playerName = localStorage.getItem('fv_name') || '';
 let matchHistory = JSON.parse(localStorage.getItem('fv_history') || '[]');
 let leaderboard = JSON.parse(localStorage.getItem('fv_leaderboard') || '[]');
@@ -107,6 +148,111 @@ function showRanking() {
     </div>`
   ).join('');
 }
+
+// ===== 新手教程 =====
+const tutorialSteps = [
+  {emoji:'🐸',title:'欢迎来到青蛙排球!',text:'这是一款指令选择 + QTE时机的排球博弈游戏。<br>你操控6只不同特性的青蛙，与AI对手进行3v3排球对决（前排3只+后排3只）。'},
+  {emoji:'🖱',title:'如何操作',text:'<b>鼠标点击</b>场上带绿圈的青蛙来选择它。<br><b>空格键</b>执行QTE判定（蓄力条在底部显示）。<br><b>鼠标拖拽</b>旋转3D视角，<b>滚轮</b>缩放。'},
+  {emoji:'🏐',title:'游戏流程',text:'<b>发球</b>→ 按空格蓄力 →<br><b>AI接球</b>→ AI进攻 →<br><b>你拦网</b>→ 点击前排青蛙(可多选1~3只)→ 空格确认 →<br><b>你进攻</b>→ 点击前排青蛙扣球 → 空格QTE → <b>得分!</b>'},
+  {emoji:'📊',title:'QTE蓄力条',text:'底部会出现一根来回摆动的蓄力条。<br><span style="color:#0f8;">绿色区域</span> = 完美 → 得分!<br><span style="color:#fa0;">橙色区域</span> = 普通 → 成功<br><span style="color:#f44;">红色区域</span> = 失误 → 丢分<br>在绿色区域按空格! '},
+  {emoji:'🐸',title:'8种青蛙',text:'每只青蛙有独特的QTE参数!<br><span style="color:#4cf;">弹力蛙</span>: 绿区超宽(25-85%)，防守专家<br><span style="color:#f64;">大力蛙</span>: 绿区窄(48-62%)，扣球威力大<br><span style="color:#fd4;">速度蛙</span>: 指针最慢，容易命中<br>底部按钮可切换每只青蛙的⚔攻/🛡守形态! '},
+  {emoji:'🎯',title:'三种战术 (按1/2/3)',text:'<b>1键 全力扣球</b>: 标准QTE扣球<br><b>2键 轻吊球</b>: 无需QTE,自动得分<br><b>3键 假扣真传</b>: 骗对方起跳后轻吊'},
+  {emoji:'🏆',title:'准备好了吗?',text:'25分制,领先2分获胜,三局两胜!<br>按 <b>T</b> 暂停 | 按 <b>R</b> 重置<br>祝你玩得开心! 🐸🏐'},
+];
+let tutStep = 0;
+function showTutorial(step) {
+  tutStep = step;
+  const s = tutorialSteps[step];
+  document.getElementById('tut-emoji').textContent = s.emoji;
+  document.getElementById('tut-title').textContent = s.title;
+  document.getElementById('tut-text').innerHTML = s.text;
+  document.getElementById('tut-prev').style.display = step === 0 ? 'none' : 'inline-block';
+  document.getElementById('tut-next').textContent = step >= tutorialSteps.length - 1 ? '🎮 开始游戏!' : '下一步 →';
+  document.getElementById('tutorial-overlay').style.display = 'flex';
+}
+function hideTutorial() {
+  document.getElementById('tutorial-overlay').style.display = 'none';
+}
+document.getElementById('tut-prev').addEventListener('click', ()=>{ if(tutStep>0) showTutorial(tutStep-1); });
+document.getElementById('tut-next').addEventListener('click', ()=>{ if(tutStep<tutorialSteps.length-1) showTutorial(tutStep+1); else hideTutorial(); });
+document.getElementById('tut-skip').addEventListener('click', hideTutorial);
+// 首次打开自动显示教程
+if (!localStorage.getItem('fv_tutorial_done')) {
+  setTimeout(()=>showTutorial(0), 500);
+  localStorage.setItem('fv_tutorial_done', '1');
+}
+
+// ===== 联机对战 (PeerJS WebRTC) =====
+let peer = null, peerConn = null, peerId = '', remotePeerId = '';
+let isMultiplayer = false, isHost = false;
+let multiState = {};
+
+function initMultiplayer() {
+  const script = document.createElement('script');
+  script.src = 'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
+  script.onload = () => {
+    peer = new Peer();
+    peer.on('open', (id) => {
+      peerId = id;
+      log('🟢 联机就绪! 你的ID: '+id.slice(0,8), 'p');
+      document.getElementById('peer-id-display').textContent = '我的ID: '+id.slice(0,8)+'...';
+    });
+    peer.on('connection', (conn) => {
+      peerConn = conn;
+      setupPeerConnection(conn);
+      log('🔗 对手已连接!', 'p');
+      document.getElementById('multi-status').textContent = '🟢 已连接';
+    });
+    peer.on('error', (e) => { log('联机错误: '+e.type, 'm'); });
+  };
+  document.head.appendChild(script);
+}
+
+function setupPeerConnection(conn) {
+  conn.on('data', (data) => {
+    if (data.type === 'score') {
+      // 对手得分同步
+      if (data.team === 'red' && !isHost) { sc.red = data.scRed; updUI(); }
+      if (data.team === 'blue' && isHost) { sc.blue = data.scBlue; updUI(); }
+    }
+    if (data.type === 'gameState') {
+      multiState = data.state;
+    }
+  });
+  conn.on('close', () => {
+    log('对手断开连接', 'm');
+    document.getElementById('multi-status').textContent = '🔴 已断开';
+    isMultiplayer = false;
+  });
+}
+
+function hostRoom() {
+  if (!peer) initMultiplayer();
+  isHost = true; isMultiplayer = true;
+  log('🏠 创建房间中... 等待对手加入', 'p');
+  document.getElementById('multi-status').textContent = '🏠 等待对手...';
+}
+function joinRoom(hostId) {
+  if (!peer) initMultiplayer();
+  isHost = false; isMultiplayer = true;
+  setTimeout(() => {
+    if (!peer) return;
+    peerConn = peer.connect(hostId);
+    setupPeerConnection(peerConn);
+    log('🔗 加入房间...', 'p');
+    document.getElementById('multi-status').textContent = '🔗 连接中...';
+  }, 1000);
+}
+function sendToPeer(data) {
+  if (peerConn && peerConn.open) peerConn.send(data);
+}
+
+// 在得分时同步
+const origAward = award;
+award = function(team) {
+  origAward(team);
+  if (isMultiplayer) sendToPeer({type:'score', team, scRed: sc.red, scBlue: sc.blue});
+};
 
 // ===== 场景 =====
 const scene = new THREE.Scene();
