@@ -1,873 +1,291 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<title>青蛙排球 3D</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#111;overflow:hidden;font-family:'Microsoft YaHei',sans-serif}
-#ui{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:10;text-align:center;pointer-events:none}
-#ui h1{color:#fff;font-size:20px;margin:0}
-#ui h1 span{color:#aaa;font-size:12px}
-#hint{color:#ffaa00;font-size:16px;font-weight:bold;margin-top:2px}
-#score{position:absolute;top:55px;left:50%;transform:translateX(-50%);display:flex;gap:25px;z-index:10;pointer-events:none}
-#score span{font-size:40px;font-weight:bold;padding:4px 14px;border-radius:8px}
-.sb{color:#4488ff}.sr{color:#ff4444}
-#btns{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:10;flex-wrap:wrap;justify-content:center}
-#btns button{padding:8px 14px;border:none;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;color:#fff}
-#log{position:absolute;top:10px;right:10px;width:220px;max-height:160px;overflow-y:auto;z-index:10;font-size:10px;color:#aaa;background:rgba(0,0,0,0.4);padding:6px;border-radius:6px}
-#qte-bar{display:none;position:absolute;bottom:80px;left:50%;transform:translateX(-50%);width:350px;z-index:20;text-align:center}
-#qte-outer{position:relative;height:18px;background:rgba(0,0,0,0.7);border-radius:9px;overflow:hidden;border:2px solid #555}
-#qte-perfect{position:absolute;top:0;height:100%;background:rgba(0,255,136,0.3);border-radius:7px}
-#qte-fill{height:100%;width:0%;border-radius:7px}
-#qte-label{color:#fff;font-size:12px;margin-top:3px}
-</style>
-</head>
-<body>
-<div id="ui"><h1>🐸 青蛙排球 v3.0 <span>局分<b id="ss">0-0</b></span></h1><div id="hint">加载中...</div></div>
-<div id="score"><span class="sb" id="sb">0</span><span style="color:#fff;font-size:40px">:</span><span class="sr" id="sr">0</span></div>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>青蛙排球 v4.0</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#111;overflow:hidden;font-family:'Microsoft YaHei',sans-serif}
+#ui{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:10;text-align:center;pointer-events:none}
+#ui h1{color:#fff;font-size:18px}#ui span{color:#aaa;font-size:11px}
+#hint{color:#ffaa00;font-size:15px;font-weight:bold}
+#score{position:absolute;top:48px;left:50%;transform:translateX(-50%);display:flex;gap:20px;z-index:10;pointer-events:none}
+#score span{font-size:36px;font-weight:bold;padding:3px 12px;border-radius:6px}.sb{color:#48f}.sr{color:#f44}
+#btns{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;flex-wrap:wrap;justify-content:center}
+#btns button{padding:7px 12px;border:none;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;color:#fff}
+#log{position:absolute;top:8px;right:8px;width:200px;max-height:140px;overflow-y:auto;z-index:10;font-size:10px;color:#aaa;background:rgba(0,0,0,0.4);padding:5px;border-radius:5px}
+#qte{display:none;position:absolute;bottom:75px;left:50%;transform:translateX(-50%);width:320px;z-index:20;text-align:center}
+#qte-o{position:relative;height:16px;background:rgba(0,0,0,0.7);border-radius:8px;overflow:hidden;border:2px solid #555}
+#qte-p{position:absolute;top:0;height:100%;background:rgba(0,255,136,0.3);border-radius:6px}
+#qte-f{height:100%;width:0%;border-radius:6px}#qte-l{color:#fff;font-size:11px;margin-top:2px}
+#tut{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:100;flex-direction:column;align-items:center;justify-content:center}
+#tut>div{background:#1a1a3e;border-radius:14px;padding:28px;max-width:480px;text-align:center;color:#fff}
+</style></head><body>
+<div id="ui"><h1>🐸 青蛙排球 v4.0 <span>局分<b id="ss">0-0</b> | 士气:<b id="mor">0</b>% | <span id="multi-st">单人模式</span></span></h1><div id="hint">按空格发球 | 1/2/3切换战术 | T暂停</div></div>
+<div id="score"><span class="sb" id="sb">0</span><span style="color:#fff;font-size:36px">:</span><span class="sr" id="sr">0</span></div>
 <div id="btns">
-  <button style="background:#0c6" id="btnS">▶发球</button>
-  <button style="background:#960" id="btnT">💥全力</button>
-  <button style="background:#06a" id="btnB">🔥士气</button>
-  <button style="background:#444" id="btnP">⏸暂停</button>
-  <button style="background:#c33" id="btnR">↺重置</button>
-  <select id="selAI" style="background:#333;color:#fff;border:none;padding:6px 8px;border-radius:6px;font-size:11px">
-    <option value="easy">🟢简单</option><option value="normal" selected>🟡普通</option><option value="hard">🔴困难</option>
-  </select>
-  <span style="color:#aaa;font-size:10px">慢放</span><input type="range" min="1" max="4" value="3" id="slBullet" style="width:50px">
+  <button style="background:#0c6" id="bS">▶发球</button>
+  <button style="background:#960" id="bT">💥全力</button>
+  <button style="background:#06a" id="bB">🔥士气</button>
+  <button style="background:#444" id="bP">⏸暂停(2)</button>
+  <button style="background:#c33" id="bR">↺重置</button>
+  <select id="selAI" style="background:#333;color:#fff;border:none;padding:5px 7px;border-radius:5px;font-size:10px">
+    <option value="easy">🟢简单</option><option value="normal" selected>🟡普通</option><option value="hard">🔴困难</option></select>
+  <span style="color:#aaa;font-size:9px">慢放</span><input type="range" min="1" max="4" value="3" id="slBullet" style="width:45px">
+  <button style="background:#036" id="bTel">🥊传送</button>
 </div>
-<div id="formBtns" style="position:absolute;bottom:55px;left:50%;transform:translateX(-50%);display:flex;gap:3px;z-index:10"></div>
+<div id="fBtns" style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);display:flex;gap:3px;z-index:10"></div>
 <div id="log"></div>
-<div id="db-panel" style="position:absolute;top:10px;left:10px;z-index:10;font-size:11px;color:#aaa;background:rgba(0,0,0,0.5);padding:8px;border-radius:6px;max-width:180px;">
-  <input id="player-name" placeholder="输入昵称" style="width:100%;padding:4px;background:#222;color:#fff;border:1px solid #555;border-radius:4px;font-size:11px;">
-  <button id="save-name" style="margin-top:4px;padding:3px 8px;font-size:10px;background:#0c6;color:#fff;border:none;border-radius:4px;cursor:pointer;">保存昵称</button>
-  <button id="show-rank" style="margin-top:4px;padding:3px 8px;font-size:10px;background:#06a;color:#fff;border:none;border-radius:4px;cursor:pointer;">🏆 排行榜</button>
-  <div id="rank-list" style="display:none;margin-top:4px;max-height:150px;overflow-y:auto;"></div>
-</div>
-<!-- 联机面板 -->
-<div id="multi-panel" style="position:absolute;top:60px;left:10px;z-index:10;font-size:11px;color:#aaa;background:rgba(0,0,0,0.6);padding:8px;border-radius:6px;max-width:180px;">
-  <div style="font-weight:bold;color:#0cf;">🔗 联机对战</div>
-  <div id="multi-status" style="color:#888;font-size:10px;">未连接</div>
-  <div id="room-code-display" style="color:#ff0;font-size:10px;"></div>
-  <button id="btn-host" style="margin-top:4px;padding:3px 8px;font-size:10px;background:#060;color:#fff;border:none;border-radius:4px;cursor:pointer;width:100%;">🏠 创建房间</button>
-  <button id="btn-join" style="margin-top:2px;padding:3px 8px;font-size:10px;background:#06a;color:#fff;border:none;border-radius:4px;cursor:pointer;width:100%;">🔗 加入房间</button>
-  <button id="btn-hide-multi" style="margin-top:2px;padding:3px 8px;font-size:10px;background:#333;color:#aaa;border:none;border-radius:4px;cursor:pointer;width:100%;">✕ 关闭</button>
-</div>
-<!-- 新手教程遮罩 -->
-<div id="tutorial-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:100;flex-direction:column;align-items:center;justify-content:center;">
-  <div style="background:#1a1a3e;border-radius:16px;padding:30px;max-width:500px;text-align:center;color:#fff;">
-    <div style="font-size:48px;" id="tut-emoji">🐸</div>
-    <h2 style="margin:10px 0;color:#ffaa00;" id="tut-title">欢迎来到青蛙排球!</h2>
-    <p style="color:#ccc;font-size:14px;line-height:1.8;margin:10px 0;" id="tut-text"></p>
-    <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;">
-      <button id="tut-prev" style="padding:10px 20px;background:#444;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;">← 上一步</button>
-      <button id="tut-next" style="padding:10px 20px;background:#e94560;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;">下一步 →</button>
-      <button id="tut-skip" style="padding:10px 20px;background:#333;color:#aaa;border:none;border-radius:8px;cursor:pointer;font-size:14px;">跳过教程</button>
-    </div>
-  </div>
-</div>
+<div id="qte"><div id="qte-o"><div id="qte-p" style="left:38%;width:38%"></div><div id="qte-f"></div></div><div id="qte-l">␣ 空格确认</div></div>
+<div id="tut"><div><div style="font-size:44px" id="te"></div><h2 style="margin:8px 0;color:#fa0" id="tt"></h2><p style="color:#ccc;font-size:13px;line-height:1.7" id="tx"></p><div style="display:flex;gap:8px;justify-content:center;margin-top:14px"><button id="tp" style="padding:8px 16px;background:#444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">←</button><button id="tn" style="padding:8px 16px;background:#e94560;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">→</button><button id="ts" style="padding:8px 16px;background:#333;color:#aaa;border:none;border-radius:6px;cursor:pointer;font-size:13px">跳过</button></div></div></div>
 
-<div id="qte-bar">
-  <div id="qte-outer"><div id="qte-perfect" style="left:38%;width:38%"></div><div id="qte-fill"></div></div>
-  <div id="qte-label">␣ 空格确认</div>
-</div>
-
-<script type="importmap">
-{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
-</script>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import*as T from'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';
 
-// ===== Firebase 配置 (等你创建Firebase项目后替换) =====
-const FIREBASE_ENABLED = false; // 改为true并填入配置即可启用跨设备功能
-const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "YOUR_APP_ID",
-  databaseURL: "https://YOUR_PROJECT.firebaseio.com"
-};
+// ====== 场景 (性能优化版) ======
+const S=new T.Scene();S.background=new T.Color(0x3a5a3a);S.fog=new T.Fog(0x3a5a3a,30,80);
+const C=new T.PerspectiveCamera(50,innerWidth/innerHeight,1,120);C.position.set(0,17,14);C.lookAt(0,0,0);
+const R=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});R.setSize(innerWidth,innerHeight);R.shadowMap.enabled=true;document.body.appendChild(R.domElement);
+const L=new T.DirectionalLight(0xffffff,2.5);L.position.set(8,18,3);L.castShadow=true;L.shadow.mapSize.set(1024,1024);Object.assign(L.shadow.camera,{near:1,far:60,left:-18,right:18,top:13,bottom:-13});S.add(L,new T.AmbientLight(0x6688aa,2.2),new T.HemisphereLight(0x88ccff,0x444422,1.1));
+const G=new T.Mesh(new T.PlaneGeometry(50,40),new T.MeshStandardMaterial({color:0x4a8a3f,roughness:0.8}));G.rotation.x=-Math.PI/2;G.receiveShadow=true;S.add(G);
+const Court=new T.Mesh(new T.PlaneGeometry(18,24),new T.MeshStandardMaterial({color:0xd4884a,roughness:0.5}));Court.rotation.x=-Math.PI/2;Court.position.y=0.01;Court.receiveShadow=true;S.add(Court);
+function Ln(x,z,w,d){const l=new T.Mesh(new T.PlaneGeometry(w,d),new T.MeshBasicMaterial({color:0xffffff,side:T.DoubleSide}));l.rotation.x=-Math.PI/2;l.position.set(x,0.02,z);S.add(l)}
+Ln(0,-12,18,0.08);Ln(0,12,18,0.08);Ln(-9,0,0.08,24);Ln(9,0,0.08,24);Ln(0,0,0.06,24);Ln(0,-4,18,0.05);Ln(0,4,18,0.05);
+[-9.2,9.2].forEach(x=>{const p=new T.Mesh(new T.CylinderGeometry(0.07,0.07,3.5),new T.MeshStandardMaterial({color:0x999,metalness:0.8}));p.position.set(x,0.75,0);S.add(p)});
+S.add(new T.Mesh(new T.PlaneGeometry(18.4,1.5),new T.MeshStandardMaterial({color:0xddd,roughness:1,transparent:true,opacity:0.6,side:T.DoubleSide})).translateY(1.75));
+const Ball=new T.Mesh(new T.SphereGeometry(0.25,16,16),new T.MeshStandardMaterial({color:0xffdd44,roughness:0.2}));Ball.castShadow=true;Ball.position.set(0,1.5,0);S.add(Ball);
 
-// 如果Firebase启用，加载SDK
-if (FIREBASE_ENABLED) {
-  const fbScript1 = document.createElement('script');
-  fbScript1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
-  document.head.appendChild(fbScript1);
-  const fbScript2 = document.createElement('script');
-  fbScript2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js';
-  document.head.appendChild(fbScript2);
-  const fbScript3 = document.createElement('script');
-  fbScript3.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
-  document.head.appendChild(fbScript3);
-}
+// ====== 数据 ======
+const FC={bouncy:0x44ccff,power:0xff6644,beauty:0xff88cc,speed:0xffdd44,normal:0x88cc88,cheer:0xffaa00,black:0x555,coach:0xeee};
+const FN={bouncy:'弹力蛙',power:'大力蛙',beauty:'美女蛙',speed:'速度蛙',normal:'普通蛙',cheer:'加油蛙',black:'黑拳蛙',coach:'教练蛙'};
+const LU=['bouncy','power','beauty','speed','normal','cheer'];
+const NXT={1:6,6:5,5:4,4:3,3:2,2:1};
+const POS=[{id:4,x:-6,z:2.5,f:1},{id:3,x:0,z:2.5,f:1},{id:2,x:6,z:2.5,f:1},{id:5,x:-6,z:7,f:0},{id:6,x:0,z:7,f:0},{id:1,x:6,z:7,f:0}];
 
-let firebaseDB = null; // 跨设备排行榜 + 联机用
-
-// ===== 数据库 (localStorage + Firebase) =====
-let playerName = localStorage.getItem('fv_name') || '';
-let matchHistory = JSON.parse(localStorage.getItem('fv_history') || '[]');
-let leaderboard = JSON.parse(localStorage.getItem('fv_leaderboard') || '[]');
-
-function saveDB() {
-  localStorage.setItem('fv_name', playerName);
-  localStorage.setItem('fv_history', JSON.stringify(matchHistory.slice(-50)));
-  localStorage.setItem('fv_leaderboard', JSON.stringify(leaderboard.slice(0, 20)));
-}
-
-function addMatchRecord(result, myScore, aiScore) {
-  matchHistory.push({
-    date: new Date().toLocaleDateString(),
-    time: new Date().toLocaleTimeString().slice(0,5),
-    result, myScore, aiScore, difficulty: aiDiff
-  });
-  // 更新排行榜
-  const existing = leaderboard.find(e => e.name === playerName);
-  const points = result === 'win' ? 3 : (result === 'lose' ? 1 : 0);
-  if (existing) {
-    existing.games++; existing.wins += result === 'win' ? 1 : 0;
-    existing.losses += result === 'lose' ? 1 : 0;
-    existing.points = existing.wins * 3 + existing.losses;
-  } else if (playerName) {
-    leaderboard.push({
-      name: playerName, games: 1,
-      wins: result === 'win' ? 1 : 0,
-      losses: result === 'lose' ? 1 : 0,
-      points: points
-    });
-  }
-  leaderboard.sort((a,b) => b.points - a.points);
-  saveDB();
-  showRanking();
-}
-
-function showRanking() {
-  const div = document.getElementById('rank-list');
-  div.style.display = 'block';
-  if (leaderboard.length === 0) {
-    div.innerHTML = '<div style="color:#888;">暂无数据</div>';
-    return;
-  }
-  div.innerHTML = leaderboard.map((e,i) =>
-    `<div style="color:${i===0?'#ffdd00':i===1?'#ccc':i===2?'#c96':'#888'};font-size:10px;padding:1px 0;">
-      ${i+1}. ${e.name} ${e.wins}胜${e.losses}负 (${e.points}分)
-    </div>`
-  ).join('');
-}
-
-// ===== 新手教程 =====
-const tutorialSteps = [
-  {emoji:'🐸',title:'欢迎来到青蛙排球!',text:'这是一款指令选择 + QTE时机的排球博弈游戏。<br>你操控6只不同特性的青蛙，与AI对手进行3v3排球对决（前排3只+后排3只）。'},
-  {emoji:'🖱',title:'如何操作',text:'<b>鼠标点击</b>场上带绿圈的青蛙来选择它。<br><b>空格键</b>执行QTE判定（蓄力条在底部显示）。<br><b>鼠标拖拽</b>旋转3D视角，<b>滚轮</b>缩放。'},
-  {emoji:'🏐',title:'游戏流程',text:'<b>发球</b>→ 按空格蓄力 →<br><b>AI接球</b>→ AI进攻 →<br><b>你拦网</b>→ 点击前排青蛙(可多选1~3只)→ 空格确认 →<br><b>你进攻</b>→ 点击前排青蛙扣球 → 空格QTE → <b>得分!</b>'},
-  {emoji:'📊',title:'QTE蓄力条',text:'底部会出现一根来回摆动的蓄力条。<br><span style="color:#0f8;">绿色区域</span> = 完美 → 得分!<br><span style="color:#fa0;">橙色区域</span> = 普通 → 成功<br><span style="color:#f44;">红色区域</span> = 失误 → 丢分<br>在绿色区域按空格! '},
-  {emoji:'🐸',title:'8种青蛙',text:'每只青蛙有独特的QTE参数!<br><span style="color:#4cf;">弹力蛙</span>: 绿区超宽(25-85%)，防守专家<br><span style="color:#f64;">大力蛙</span>: 绿区窄(48-62%)，扣球威力大<br><span style="color:#fd4;">速度蛙</span>: 指针最慢，容易命中<br>底部按钮可切换每只青蛙的⚔攻/🛡守形态! '},
-  {emoji:'🎯',title:'三种战术 (按1/2/3)',text:'<b>1键 全力扣球</b>: 标准QTE扣球<br><b>2键 轻吊球</b>: 无需QTE,自动得分<br><b>3键 假扣真传</b>: 骗对方起跳后轻吊'},
-  {emoji:'🏆',title:'准备好了吗?',text:'25分制,领先2分获胜,三局两胜!<br>按 <b>T</b> 暂停 | 按 <b>R</b> 重置<br>祝你玩得开心! 🐸🏐'},
-];
-let tutStep = 0;
-function showTutorial(step) {
-  tutStep = step;
-  const s = tutorialSteps[step];
-  document.getElementById('tut-emoji').textContent = s.emoji;
-  document.getElementById('tut-title').textContent = s.title;
-  document.getElementById('tut-text').innerHTML = s.text;
-  document.getElementById('tut-prev').style.display = step === 0 ? 'none' : 'inline-block';
-  document.getElementById('tut-next').textContent = step >= tutorialSteps.length - 1 ? '🎮 开始游戏!' : '下一步 →';
-  document.getElementById('tutorial-overlay').style.display = 'flex';
-}
-function hideTutorial() {
-  document.getElementById('tutorial-overlay').style.display = 'none';
-}
-document.getElementById('tut-prev').addEventListener('click', ()=>{ if(tutStep>0) showTutorial(tutStep-1); });
-document.getElementById('tut-next').addEventListener('click', ()=>{ if(tutStep<tutorialSteps.length-1) showTutorial(tutStep+1); else hideTutorial(); });
-document.getElementById('tut-skip').addEventListener('click', hideTutorial);
-// 首次打开自动显示教程
-if (!localStorage.getItem('fv_tutorial_done')) {
-  setTimeout(()=>showTutorial(0), 500);
-  localStorage.setItem('fv_tutorial_done', '1');
-}
-
-// ===== 跨设备排行榜 (jsonblob.com 免费API) =====
-const LEADERBOARD_BLOB_ID = 'frog-volleyball-leaderboard-v1';
-let cloudLeaderboard = [];
-
-async function fetchWithTimeout(url, opts={}, ms=8000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
-  try {
-    const resp = await fetch(url, {...opts, signal: controller.signal});
-    clearTimeout(timer);
-    return resp;
-  } catch(e) { clearTimeout(timer); throw e; }
-}
-
-async function fetchCloudLeaderboard() {
-  const savedUrl = localStorage.getItem('fv_leaderboard_url');
-  if (savedUrl) {
-    try {
-      const resp = await fetchWithTimeout(savedUrl);
-      if (resp.ok) {
-        const data = await resp.json();
-        if (Array.isArray(data) && data.length > 0) {
-          cloudLeaderboard = data;
-          log('🌐 云端排行已加载('+cloudLeaderboard.length+'条)', 'p');
-          showRanking();
-          return;
-        }
-      }
-      // 404 or invalid - clear and create new
-      if (resp.status === 404) localStorage.removeItem('fv_leaderboard_url');
-    } catch(e) { /* network error, will create new */ }
-  }
-
-  // 创建新blob
-  try {
-    const resp = await fetchWithTimeout('https://jsonblob.com/api/jsonBlob', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify([])
-    });
-    if (resp.ok) {
-      let loc = resp.headers.get('Location');
-      if (loc) {
-        if (!loc.startsWith('http')) loc = 'https://jsonblob.com' + loc;
-        localStorage.setItem('fv_leaderboard_url', loc);
-        log('🌐 云端排行榜已就绪', 'p');
-      }
-      cloudLeaderboard = [];
-    } else {
-      log('🌐 创建云端排行失败('+resp.status+'),离线模式', 'm');
-    }
-  } catch(e2) {
-    log('🌐 网络不可用,排行仅保存在本地', 'm');
-  }
-}
-
-async function uploadToLeaderboard(entry) {
-  const url = localStorage.getItem('fv_leaderboard_url');
-  if (!url) {
-    log('📋 排行已保存(本地)', 'p');
-    return;
-  }
-  try {
-    const resp = await fetchWithTimeout(url);
-    if (resp.ok) {
-      let remote = await resp.json();
-      if (!Array.isArray(remote)) remote = [];
-      const existing = remote.find(e => e.name === entry.name);
-      if (existing) {
-        existing.games += entry.games;
-        existing.wins += entry.wins;
-        existing.losses += entry.losses;
-        existing.points = existing.wins * 3 + existing.losses;
-      } else {
-        remote.push(entry);
-      }
-      remote.sort((a,b) => b.points - a.points);
-      remote = remote.slice(0, 20);
-      await fetchWithTimeout(url, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(remote)
-      });
-      cloudLeaderboard = remote;
-      log('🏆 排行已同步到云端!', 'p');
-      showRanking();
-    }
-  } catch(e) {
-    log('📋 云端暂不可用,排行已保存(本地)', 'm');
-    showRanking();
-  }
-}
-
-// 替换原有的addMatchRecord，加上云端同步
-const origAddMatch = addMatchRecord;
-addMatchRecord = function(result, myScore, aiScore) {
-  origAddMatch(result, myScore, aiScore);
-  if (playerName) {
-    const entry = leaderboard.find(e => e.name === playerName);
-    if (entry) uploadToLeaderboard({...entry});
-  }
-};
-
-// 初始化时加载云端排行
-fetchCloudLeaderboard();
-
-// ===== 联机对战 (PeerJS WebRTC + 房间码) =====
-let peer = null, peerConn = null, peerId = '', remotePeerId = '';
-let isMultiplayer = false, isHost = false, roomCode = '';
-
-function initMultiplayer() {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
-    script.onload = () => {
-      peer = new Peer();
-      peer.on('open', (id) => {
-        peerId = id;
-        log('🟢 联机就绪! 你的ID: '+id.slice(0,8), 'p');
-        document.getElementById('multi-status').textContent = '🟢 联机已就绪';
-        resolve(id);
-      });
-      peer.on('connection', (conn) => {
-        peerConn = conn;
-        setupPeerConnection(conn);
-        log('🔗 对手已连接! 游戏开始!', 'p');
-        document.getElementById('multi-status').textContent = '🟢 对战中';
-        // 重置比赛开始
-        sc = {blue:0, red:0}; sets = {blue:0, red:0}; curSet = 1; matchOver = false;
-        resetRound(); updUI();
-        if (isHost) serving = 'blue'; else serving = 'red';
-        hideMultiPanel();
-      });
-      peer.on('error', (e) => { log('联机错误: '+e.type, 'm'); reject(e); });
-    };
-    document.head.appendChild(script);
-  });
-}
-
-function setupPeerConnection(conn) {
-  conn.on('data', (data) => {
-    if (data.type === 'sync') {
-      // 游戏状态同步
-      sc = data.sc; serving = data.serving;
-      updUI();
-    }
-    if (data.type === 'action') {
-      log('对手执行了: '+data.action, 'p');
-    }
-  });
-  conn.on('close', () => {
-    log('对手断开连接', 'm');
-    document.getElementById('multi-status').textContent = '🔴 已断开';
-    isMultiplayer = false;
-    matchOver = true;
-  });
-}
-
-function sendToPeer(data) {
-  if (peerConn && peerConn.open) peerConn.send(data);
-}
-
-async function hostRoom() {
-  if (!peer) await initMultiplayer();
-  isHost = true; isMultiplayer = true;
-  roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-  document.getElementById('room-code-display').textContent = '房间码: ' + roomCode;
-  document.getElementById('multi-status').textContent = '🏠 等待对手...';
-  log('🏠 房间已创建! 房间码: '+roomCode+' (发给朋友)', 'p');
-  // 把房间码和peerId存到共享存储
-  try {
-    await fetch('https://jsonblob.com/api/jsonBlob', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({code: roomCode, hostPeerId: peerId, time: Date.now()})
-    });
-  } catch(e) { log('提示: 直接告诉朋友你的PeerID: '+peerId.slice(0,8)); }
-}
-
-async function joinRoom(code) {
-  if (!peer) await initMultiplayer();
-  isHost = false; isMultiplayer = true;
-  roomCode = code.toUpperCase();
-  document.getElementById('multi-status').textContent = '🔗 查找房间...';
-  log('🔗 正在加入房间: '+roomCode);
-
-  // 尝试通过jsonblob查找房间
-  try {
-    // 简化: 让玩家通过其他方式交换peerId
-    const hostId = prompt('输入对方的Peer ID (让房主告诉你):');
-    if (hostId) {
-      peerConn = peer.connect(hostId);
-      setupPeerConnection(peerConn);
-      document.getElementById('room-code-display').textContent = '房间: ' + roomCode;
-    }
-  } catch(e) {
-    log('加入房间失败, 请确认房间码正确', 'm');
-  }
-}
-
-function sendGameSync() {
-  if (isMultiplayer && isHost) {
-    sendToPeer({type: 'sync', sc, serving});
-  }
-}
-
-function hideMultiPanel() {
-  document.getElementById('multi-panel').style.display = 'none';
-}
-
-// 在每个得分点同步
-const origAward2 = award;
-award = function(team) {
-  origAward2(team);
-  if (isMultiplayer) sendGameSync();
-};
-
-// 显示联机面板
-function showMultiPanel() {
-  document.getElementById('multi-panel').style.display = 'block';
-}
-
-// ===== 场景 =====
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x3a5a3a);
-scene.fog = new THREE.Fog(0x3a5a3a, 30, 80);
-const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 1, 120);
-camera.position.set(0, 17, 14); camera.lookAt(0, 0, 0);
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
-document.body.appendChild(renderer.domElement);
-
-// 灯光
-const dir = new THREE.DirectionalLight(0xffffff, 3);
-dir.position.set(10, 20, 5); dir.castShadow = true;
-dir.shadow.mapSize.set(2048, 2048);
-Object.assign(dir.shadow.camera, {near:1,far:60,left:-20,right:20,top:15,bottom:-15});
-scene.add(dir, new THREE.AmbientLight(0x6688aa, 2), new THREE.HemisphereLight(0x88ccff, 0x444422, 1));
-
-// 地面
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(50, 40), new THREE.MeshStandardMaterial({color:0x4a8a3f,roughness:0.8}));
-ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
-
-// 球场
-const court = new THREE.Mesh(new THREE.PlaneGeometry(18, 24), new THREE.MeshStandardMaterial({color:0xd4884a,roughness:0.5}));
-court.rotation.x = -Math.PI/2; court.position.y = 0.01; court.receiveShadow = true; scene.add(court);
-// 边线
-function addLine(x,z,w,d){const l=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide}));l.rotation.x=-Math.PI/2;l.position.set(x,0.02,z);scene.add(l);}
-addLine(0,-12,18,0.1);addLine(0,12,18,0.1);addLine(-9,0,0.1,24);addLine(9,0,0.1,24);addLine(0,0,0.08,24); // 中线
-addLine(0,-4,18,0.06);addLine(0,4,18,0.06); // 进攻线
-
-// 球网
-[-9.2,9.2].forEach(x=>{const p=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,3.5),new THREE.MeshStandardMaterial({color:0x999,metalness:0.8}));p.position.set(x,0.75,0);scene.add(p);});
-const netMesh=new THREE.Mesh(new THREE.PlaneGeometry(18.4,1.5),new THREE.MeshStandardMaterial({color:0xddd,roughness:1,transparent:true,opacity:0.6,side:THREE.DoubleSide}));
-netMesh.position.y=1.75;scene.add(netMesh);
-const topRope=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,18.4),new THREE.MeshStandardMaterial({color:0xccc}));
-topRope.rotation.z=Math.PI/2;topRope.position.y=2.5;scene.add(topRope);
-
-// 球
-const ball = new THREE.Mesh(new THREE.SphereGeometry(0.25,24,24),new THREE.MeshStandardMaterial({color:0xffdd44,roughness:0.2}));
-ball.castShadow=true;ball.position.set(0,1.5,0);scene.add(ball);
-
-// ===== 青蛙数据 =====
-const C = {bouncy:0x44ccff,power:0xff6644,beauty:0xff88cc,speed:0xffdd44,normal:0x88cc88,cheer:0xffaa00,black:0x555,coach:0xeee};
-const N = {bouncy:'弹力蛙',power:'大力蛙',beauty:'美女蛙',speed:'速度蛙',normal:'普通蛙',cheer:'加油蛙',black:'黑拳蛙',coach:'教练蛙'};
-const LINEUP = ['bouncy','power','beauty','speed','normal','cheer'];
-const NEXT = {1:6,6:5,5:4,4:3,3:2,2:1};
-
-// ===== 创建青蛙 =====
-function makeFrog(color){
-  const g = new THREE.Group();
-  const m = new THREE.MeshStandardMaterial({color,roughness:0.25});
-  const b = new THREE.Mesh(new THREE.SphereGeometry(0.4,16,12), m);
-  b.position.y=0.5;b.castShadow=true;g.add(b);
-  const h = new THREE.Mesh(new THREE.SphereGeometry(0.26,12,8), m);
-  h.position.set(0,1.05,0.05);h.castShadow=true;g.add(h);
-  // 眼睛
-  const eG=new THREE.SphereGeometry(0.08,6,6),eM=new THREE.MeshBasicMaterial({color:0xffffff});
-  const pG=new THREE.SphereGeometry(0.05,4,4),pM=new THREE.MeshBasicMaterial({color:0x000000});
-  [-0.13,0.13].forEach(s=>{
-    const e=new THREE.Mesh(eG,eM);e.position.set(s,1.14,0.2);g.add(e);
-    const p=new THREE.Mesh(pG,pM);p.position.set(s,1.14,0.26);g.add(p);
-  });
-  // 光环
-  const ring=new THREE.Mesh(new THREE.RingGeometry(0.48,0.55,24),new THREE.MeshBasicMaterial({color:0x00ff88,side:THREE.DoubleSide,visible:false}));
-  ring.rotation.x=-Math.PI/2;ring.position.y=0.02;g.add(ring);g.userData.ring=ring;
+// ====== 青蛙模型 (简化性能) ======
+function mkF(c){
+  const g=new T.Group(),m=new T.MeshStandardMaterial({color:c,roughness:0.3});
+  g.add(new T.Mesh(new T.SphereGeometry(0.4,10,8),m).translateY(0.5));
+  g.add(new T.Mesh(new T.SphereGeometry(0.24,8,6),m).translateY(1.05).translateZ(0.05));
+  const eG=new T.SphereGeometry(0.08,5,5),eM=new T.MeshBasicMaterial({color:0xffffff}),pG=new T.SphereGeometry(0.05,4,4),pM=new T.MeshBasicMaterial({color:0x0});
+  [-0.12,0.12].forEach(s=>{g.add(new T.Mesh(eG,eM).translateX(s).translateY(1.13).translateZ(0.2));g.add(new T.Mesh(pG,pM).translateX(s).translateY(1.13).translateZ(0.25));});
+  const r=new T.Mesh(new T.RingGeometry(0.48,0.55,20),new T.MeshBasicMaterial({color:0x00ff88,side:T.DoubleSide,visible:false}));r.rotation.x=-Math.PI/2;r.position.y=0.02;g.add(r);g.userData.ring=r;
   return g;
 }
-
-// 标准6个排球位置
-const POSITIONS = [
-  {id:4,x:-6,z:2.5,front:true},{id:3,x:0,z:2.5,front:true},{id:2,x:6,z:2.5,front:true},
-  {id:5,x:-6,z:7,front:false},{id:6,x:0,z:7,front:false},{id:1,x:6,z:7,front:false}
-];
-
-const playerFrogs=[],aiFrogs=[];
-function createAllFrogs(){
-  [...playerFrogs,...aiFrogs].forEach(f=>scene.remove(f.model));
-  playerFrogs.length=0;aiFrogs.length=0;
-  // 蓝队
-  POSITIONS.forEach((p,i)=>{
-    const t=LINEUP[i];
-    const md=makeFrog(C[t]);md.position.set(p.x,0,p.z);md.scale.set(1.5,1.5,1.5);scene.add(md);
-    playerFrogs.push({model:md,posId:p.id,type:t,front:p.front,x:p.x,z:p.z,selectable:false,side:'blue'});
-  });
-  // 红队
-  POSITIONS.forEach((p,i)=>{
-    const md=makeFrog(0x88cc88);md.position.set(p.x,0,-p.z);md.rotation.y=Math.PI;md.scale.set(1.5,1.5,1.5);scene.add(md);
-    aiFrogs.push({model:md,posId:p.id,type:'normal',front:p.front,x:p.x,z:-p.z,selectable:false,side:'red'});
-  });
-  log('✅ 蓝队'+playerFrogs.length+'只 + 红队'+aiFrogs.length+'只 = '+(playerFrogs.length+aiFrogs.length)+'只','p');
+const pF=[],aF=[];
+function crAll(){
+  [...pF,...aF].forEach(f=>S.remove(f.model));pF.length=0;aF.length=0;
+  POS.forEach((p,i)=>{const t=LU[i],m=mkF(FC[t]);m.position.set(p.x,0,p.z);m.scale.set(1.4,1.4,1.4);S.add(m);pF.push({model:m,pos:p.id,type:t,front:p.f,x:p.x,z:p.z,sel:false,side:'blue',form:'attack'});});
+  POS.forEach((p,i)=>{const m=mkF(0x88cc88);m.position.set(p.x,0,-p.z);m.rotation.y=Math.PI;m.scale.set(1.4,1.4,1.4);S.add(m);aF.push({model:m,pos:p.id,type:'normal',front:p.f,x:p.x,z:-p.z,sel:false,side:'red'});});
+  log('✅ 蓝队'+pF.length+'只 + 红队'+aF.length+'只 = 12只青蛙','p');
 }
-function initFrogs(){createAllFrogs();}
-initFrogs();
+crAll();
 
-// ===== 游戏状态 =====
-let state='idle',serving='blue',sc={blue:0,red:0},morale={blue:0,red:0};
-let sets={blue:0,red:0},curSet=1,matchOver=false;
-let qteOn=false,qteVal=0,qteDir=1,qteCB=null,qtePS=38,qtePE=76,qteSP=1;
-let bulletTime=false,bulletSpeed=0.15;
-let blockers=[],tactic='power',touchCount=0;
-let buff=null,timeouts={blue:2,red:2};
-let aiDiff='normal',forms={};LINEUP.forEach((_,i)=>forms[i]='attack');
-let particles=[];
+// ====== 粒子 (性能优化) ======
+let pts=[];
+function sp(x,y,z,c,n=12){for(let i=0;i<n;i++){const g=new T.SphereGeometry(0.04,3,3),m=new T.MeshBasicMaterial({color:c,transparent:true,opacity:1});const p=new T.Mesh(g,m);p.position.set(x,y,z);p.userData={vx:(Math.random()-0.5)*2.5,vy:Math.random()*3+1.5,vz:(Math.random()-0.5)*2.5,life:1,decay:0.03+Math.random()*0.04};S.add(p);pts.push(p);}}
 
-function updUI(){
-  document.getElementById('sb').textContent=sc.blue;
-  document.getElementById('sr').textContent=sc.red;
+// ====== 游戏状态 ======
+let st='idle',sv='blue',sc={blue:0,red:0},mor={blue:0,red:0},sets={blue:0,red:0},cSet=1,mo=false;
+let qOn=false,qV=0,qD=1,qCB=null,qPS=38,qPE=76,qSP=1;
+let bt=false,btS=0.15,blk=[],tac='power',tc=0,buff=null,tos={blue:2,red:2};
+let aiD='normal',forms={};LU.forEach((_,i)=>forms[i]='attack');
+let blkCd=0;
+let bench=['normal','speed','black','coach'].map(t=>({type:t,name:FN[t]}));
+let tutS=0;
+
+function uUI(){
+  document.getElementById('sb').textContent=sc.blue;document.getElementById('sr').textContent=sc.red;
   document.getElementById('ss').textContent=sets.blue+'-'+sets.red;
+  document.getElementById('mor').textContent=Math.round(mor.blue);
+  document.getElementById('bP').textContent='⏸暂停('+tos.blue+')';
 }
 
-// ===== 音效 =====
-let actx;
-function au(){if(!actx)actx=new AudioContext();if(actx.state==='suspended')actx.resume();return actx;}
-function beep(f,d,v=0.08){const c=au();if(!c)return;try{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d);}catch(e){}}
-function sfxP(){beep(880,0.1);setTimeout(()=>beep(1100,0.15),80);}
-function sfxS(){beep(523,0.08);setTimeout(()=>beep(659,0.08),70);setTimeout(()=>beep(784,0.12),140);}
-function sfxM(){beep(120,0.3);}
+// ====== 音效 ======
+let ax;function au(){if(!ax)ax=new AudioContext();if(ax.state==='suspended')ax.resume();return ax;}
+function bp(f,d,v=0.07){const c=au();if(!c)return;try{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d);}catch(e){}}
+function sP(){bp(880,0.1);setTimeout(()=>bp(1100,0.13),70);}function sS(){bp(523,0.07);setTimeout(()=>bp(659,0.07),60);setTimeout(()=>bp(784,0.1),120);}function sM(){bp(120,0.25);}
 
-// ===== 日志 =====
-function log(msg,c=''){
-  const d=document.createElement('div');d.style.color=c==='p'?'#0f8':c==='m'?'#f44':'#aaa';d.textContent=msg;
-  const box=document.getElementById('log');box.prepend(d);
-  if(box.children.length>15)box.removeChild(box.lastChild);
+// ====== 日志 ======
+function log(m,c=''){const d=document.createElement('div');d.style.color=c==='p'?'#0f8':c==='m'?'#f44':'#aaa';d.textContent=m;const b=document.getElementById('log');b.prepend(d);if(b.children.length>15)b.removeChild(b.lastChild);}
+
+// ====== QTE ======
+function qS(cb,lb,mod={ps:38,pe:76,sp:1}){
+  qOn=true;qV=0;qD=1;qCB=cb;qPS=mod.ps||38;qPE=mod.pe||76;qSP=mod.sp||1;
+  document.getElementById('hint').textContent='␣ '+lb;document.getElementById('hint').style.color='#fa0';
+  document.getElementById('qte').style.display='block';document.getElementById('qte-p').style.left=qPS+'%';document.getElementById('qte-p').style.width=(qPE-qPS)+'%';document.getElementById('qte-l').textContent='␣ '+lb+(mod.label?' ['+mod.label+']':'');
 }
+function qE(){qOn=false;document.getElementById('hint').style.color='#fff';document.getElementById('qte').style.display='none';}
+function qF(){if(!qOn)return;const v=qV;qE();const r=(v>=qPS&&v<=qPE)?'perfect':(v>=qPS-14&&v<=qPE+10)?'normal':'miss';if(qCB)qCB(r);}
 
-// ===== QTE =====
-function startQTE(cb,label,mod={ps:38,pe:76,sp:1}){
-  qteOn=true;qteVal=0;qteDir=1;qteCB=cb;
-  qtePS=mod.ps||38;qtePE=mod.pe||76;qteSP=mod.sp||1;
-  document.getElementById('hint').textContent='␣ '+label;
-  document.getElementById('hint').style.color='#ffaa00';
-  document.getElementById('qte-bar').style.display='block';
-  document.getElementById('qte-perfect').style.left=qtePS+'%';
-  document.getElementById('qte-perfect').style.width=(qtePE-qtePS)+'%';
-  document.getElementById('qte-label').textContent='␣ '+label+(mod.label?' ['+mod.label+']':'');
-}
-function stopQTE(){qteOn=false;document.getElementById('hint').style.color='#fff';document.getElementById('qte-bar').style.display='none';}
-function fireQTE(){if(!qteOn)return;const v=qteVal;stopQTE();const r=(v>=qtePS&&v<=qtePE)?'perfect':(v>=qtePS-14&&v<=qtePE+10)?'normal':'miss';if(qteCB)qteCB(r);}
-
-// ===== 青蛙被动QTE =====
-function getMod(frog,isRecv){
-  const idx=playerFrogs.indexOf(frog);
-  const form=idx>=0?forms[idx]:'attack';
-  let ps=38,pe=76,sp=1,label=N[frog.type];
-  switch(frog.type){
-    case 'normal':if(form==='attack')pe=78;else{ps=33;pe=78;}break;
-    case 'power':if(form==='attack'){ps=48;pe=62;sp=1.3;label='大力蛙⚔';}else{ps=42;pe=68;label='大力蛙🛡';}break;
-    case 'bouncy':if(form==='attack'){ps=33;pe=80;sp=0.85;label='弹力蛙⚔';}else{ps=25;pe=85;sp=0.7;label='弹力蛙🛡';}break;
-    case 'speed':sp=form==='attack'?0.7:0.8;label='速度蛙';break;
-    case 'beauty':ps=44;pe=68;sp=1.15;label='美女蛙';break;
-    case 'cheer':ps=33;pe=82;sp=0.85;label='加油蛙';break;
-    case 'black':ps=38;pe=76;sp=1.1;label='黑拳蛙';break;
-    case 'coach':ps=38;pe=78;sp=0.85;label='教练蛙';break;
+// ====== 青蛙被动 (完整版) ======
+function getM(f,isR){
+  const idx=pF.indexOf(f),fm=idx>=0?forms[idx]:'attack';
+  let ps=38,pe=76,sp=1,lb=FN[f.type];
+  // 基础被动
+  switch(f.type){
+    case'normal':fm==='attack'?pe=78:(ps=33,pe=78);break;
+    case'power':fm==='attack'?(ps=48,pe=62,sp=1.3,lb='大力蛙⚔'):(ps=42,pe=68,lb='大力蛙🛡');break;
+    case'bouncy':fm==='attack'?(ps=33,pe=80,sp=0.85,lb='弹力蛙⚔'):(ps=25,pe=85,sp=0.7,lb='弹力蛙🛡');break;
+    case'speed':sp=fm==='attack'?0.7:0.8;lb='速度蛙';break;
+    case'beauty':ps=44;pe=68;sp=1.15;lb='美女蛙';break;
+    case'cheer':ps=33;pe=82;sp=0.85;lb='加油蛙';break;
+    case'black':ps=38;pe=76;sp=1.1;lb='黑拳蛙';break;
+    case'coach':ps=38;pe=78;sp=0.85;lb='教练蛙';break;
   }
-  if(isRecv&&!['bouncy','speed','normal'].includes(frog.type)){ps+=8;pe-=8;label+='⚠';}
-  if(buff&&buff.type==='attack'){if(!isRecv){ps-=3;pe+=5;sp*=0.85;}else{ps+=6;pe-=6;sp*=1.2;}}
-  return{ps,pe,sp,label};
+  // 糟糕出手惩罚
+  if(isR&&!['bouncy','speed','normal'].includes(f.type)){ps+=8;pe-=8;lb+='⚠';}
+  // 己方加油蛙: 全队绿区+10%
+  if(pF.some(x=>x.type==='cheer')){ps-=4;pe+=4;}
+  // 对方美女蛙: 我方绿区-15%
+  if(aF.some(x=>x.type==='beauty')){ps+=6;pe-=6;}
+  // BUFF修正
+  if(buff&&buff.type==='attack'){if(!isR){ps-=3;pe+=5;sp*=0.85;}else{ps+=6;pe-=6;sp*=1.2;}}
+  if(buff&&buff.type==='defense'){if(isR){ps-=8;pe+=8;sp*=0.75;}else{ps+=4;pe-=4;sp*=1.4;}}
+  return{ps,pe,sp,label:lb};
 }
 
-// ===== 粒子 =====
-function spawnParts(x,y,z,color,n=20){
-  for(let i=0;i<n;i++){
-    const g=new THREE.SphereGeometry(0.05,4,4),m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:1});
-    const p=new THREE.Mesh(g,m);p.position.set(x,y,z);
-    p.userData={vx:(Math.random()-0.5)*3,vy:Math.random()*4+2,vz:(Math.random()-0.5)*3,life:1,decay:0.02+Math.random()*0.03};
-    scene.add(p);particles.push(p);
-  }
-}
+// ====== 子弹时间修正 (速度蛙被动) ======
+function getBTMod(){let m=btS;if(pF.some(f=>f.type==='speed'))m*=0.7;if(aF.some(f=>f.type==='speed'))m*=1.3;return m;}
 
-// ===== 得分 =====
-function award(team){
-  sc[team]++;updUI();
-  if(sc[team]>=25&&sc[team]-sc[team==='blue'?'red':'blue']>=2)winSet(team);
-  serving=team;
+// ====== 得分 ======
+function aw(tm){
+  sc[tm]++;sv=tm;uUI();
+  const op=tm==='blue'?'red':'blue';
+  // 速度蛙被动: 对方子弹时间缩短
+  if(sc[tm]>=25&&sc[tm]-sc[op]>=2)wS(tm);
   if(buff){buff.turns--;if(buff.turns<=0){buff=null;log('士气BUFF过期');}}
+  // 教练蛙: 士气积攒翻倍
+  if(pF.some(f=>f.type==='coach'))mor.blue=Math.min(100,mor.blue+3);
+  if(blkCd>0)blkCd--;
 }
-function winSet(team){
-  sets[team]++;beep(880,0.3);setTimeout(()=>beep(1100,0.5),200);
-  log((team==='blue'?'你':'AI')+'赢得第'+curSet+'局!','p');
-  if(sets[team]>=2){
-    matchOver=true;
-    document.getElementById('hint').textContent=team==='blue'?'🏆 你赢了! 按R重来':'💔 AI获胜 按R重来';
-    // 保存比赛记录
-    if(playerName) addMatchRecord(team==='blue'?'win':'lose', sc.blue, sc.red);
-  }
-  else{curSet++;sc={blue:0,red:0};updUI();log('交换场地,第'+curSet+'局开始');}
+function wS(tm){
+  sets[tm]++;bp(880,0.25);setTimeout(()=>bp(1100,0.4),180);
+  log((tm==='blue'?'你':'AI')+'赢得第'+cSet+'局!','p');
+  if(sets[tm]>=2){mo=true;document.getElementById('hint').textContent=tm==='blue'?'🏆 你赢了! 按R重来':'💔 AI获胜 按R重来';}
+  else{cSet++;sc={blue:0,red:0};tos={blue:2,red:2};uUI();log('交换场地');}
 }
 
-// ===== 轮转 =====
-function rotate(team){
-  // 固定的6个排球位置
-  const POSITIONS = [
-    {id:4,x:-6,z:2.5,front:true},{id:3,x:0,z:2.5,front:true},{id:2,x:6,z:2.5,front:true},
-    {id:5,x:-6,z:7,front:false},{id:6,x:0,z:7,front:false},{id:1,x:6,z:7,front:false}
-  ];
-  const side = team[0].side==='blue'?1:-1;
-
-  // 更新posId（顺时针轮转）
-  team.forEach(f=>{ f.posId = NEXT[f.posId]; });
-
-  // 把每只青蛙放到正确的posId位置
-  team.forEach(f=>{
-    const pos = POSITIONS.find(p=>p.id===f.posId);
-    if(!pos){log('❌无效posId:'+f.posId,'m');return;}
-    f.front = pos.front;
-    f.x = pos.x;
-    f.z = pos.z * side;
-    f.model.position.set(f.x, 0, f.z);
-  });
-
-  // 验证
-  const posSet = new Set();
-  team.forEach(f=>{
-    const key = f.posId;
-    if(posSet.has(key)){log('❌重复posId:'+key,'m');}
-    posSet.add(key);
-  });
+// ====== 暂停 (完整规则: 仅己方得分后发球前) ======
+function doTO(){
+  if(st!=='idle'||sv!=='blue'){log('只能在己方得分后发球前暂停!');return;}
+  if(tos.blue<=0){log('暂停次数已用完');return;}
+  tos.blue--;uUI();
+  log('⏸ 暂停! 可换替补 (点击场上青蛙替换)','p');
+  document.getElementById('hint').textContent='⏸ 暂停中...点青蛙替换';
+  // 显示替补选项
+  bench.forEach((b,i)=>{log((i+1)+'. '+b.name+' (替补)');});
+  setTimeout(()=>{document.getElementById('hint').textContent='暂停结束';log('暂停结束');},5000);
 }
 
-// ===== 选中 =====
-function clearSel(){playerFrogs.forEach(f=>{f.selectable=false;if(f.model.userData.ring)f.model.userData.ring.visible=false;});}
-function highlight(onlyFront){
-  playerFrogs.forEach(f=>{
-    f.selectable=onlyFront===null?true:(f.front===onlyFront);
-    const r=f.model.userData.ring;if(!r)return;
-    r.visible=f.selectable;r.material.color.set(f.selectable?0x00ff88:0x444444);
-  });
+// ====== 黑拳蛙传送 ======
+function doTel(){
+  if(blkCd>0){log('🥊 传送冷却中('+blkCd+'回合)');return;}
+  const bf=pF.find(f=>f.type==='black');
+  if(!bf){log('黑拳蛙不在场上!');return;}
+  blkCd=3;sp(bf.model.position.x,1.5,bf.model.position.z,0x666,15);
+  // 传送到球的附近
+  bf.model.position.set(Ball.position.x,0,Ball.position.z);
+  bf.x=Ball.position.x;bf.z=Ball.position.z;
+  log('🥊 黑拳蛙传送至落点! (冷却3回合)','p');
+  sS();
 }
 
-// ===== 流程 =====
-function resetRound(){
-  state='idle';bulletTime=false;clearSel();blockers=[];touchCount=0;
-  ball.position.set(0,1.5,0);updUI();
-  if(!matchOver){
-    document.getElementById('hint').textContent=serving==='blue'?'你的发球局(空格发球)':'AI发球局';
-    if(serving!=='blue')setTimeout(aiServe,1200);
-  }
+// ====== 轮转 ======
+function rot(tm){
+  tm.forEach(f=>{f.pos=NXT[f.pos];f.front=f.pos<=3;const s=f.side==='blue'?1:-1;f.z=(f.pos<=3?2.5:7)*s;f.x=f.pos===4||f.pos===5?-6:(f.pos===3||f.pos===6?0:6);f.model.position.set(f.x,0,f.z);});
 }
 
-function startServe(){
-  if(state!=='idle'||matchOver)return;
-  au();state='serving';touchCount=0;
-  startQTE(r=>{
-    if(r==='perfect'||r==='normal'){
-      sfxS();ball.position.set(playerFrogs.find(f=>f.posId===1).model.position.x,2,playerFrogs.find(f=>f.posId===1).model.position.z);
-      state='aiTurn';document.getElementById('hint').textContent='AI接球中...';
-      setTimeout(aiPlay,1500);
-    }else{sfxM();award('red');resetRound();}
-  },'发球蓄力');
+// ====== 选中 ======
+function clS(){pF.forEach(f=>{f.sel=false;if(f.model.userData.ring)f.model.userData.ring.visible=false;});}
+function hl(of){pF.forEach(f=>{f.sel=of===null?true:(f.front===of);const r=f.model.userData.ring;if(!r)return;r.visible=f.sel;r.material.color.set(f.sel?0x00ff88:0x444444);});}
+
+// ====== 流程 ======
+function rR(){
+  st='idle';bt=false;clS();blk=[];tc=0;Ball.position.set(0,1.5,0);uUI();
+  if(!mo){document.getElementById('hint').textContent=sv==='blue'?'你的发球局 (空格发球 | T暂停'+(tos.blue)+'次)':'AI发球局';if(sv!=='blue')setTimeout(aSv,1200);}
+}
+function sSv(){
+  if(st!=='idle'||mo)return;au();st='serving';tc=0;
+  const svf=pF.find(f=>f.pos===1);
+  const isPower=svf.type==='power';
+  qS(r=>{
+    if(r==='perfect'||r==='normal'){sS();Ball.position.set(svf.model.position.x,2,svf.model.position.z);st='aiTurn';document.getElementById('hint').textContent='AI接球中...';setTimeout(aPl,1500);}
+    else{sM();aw('red');rR();}
+  },'发球'+(isPower?'⚡大力发球':''),(isPower?{ps:48,pe:60,sp:1.3,label:'大力发球'}:{ps:40,pe:72,sp:1}));
+}
+function aSv(){
+  if(st!=='idle'||mo)return;st='serving';tc=0;
+  setTimeout(()=>{if(Math.random()<0.12){aw('blue');rot(pF);rR();}else{st='receive';bt=true;tc=1;hl(false);document.getElementById('hint').textContent='🎯 点后排蛙接一传!';setTimeout(()=>{if(st==='receive'){aw('red');bt=false;clS();rR();}},4000);}},1000);
+}
+function aPl(){
+  const mr=aiD==='easy'?0.18:(aiD==='normal'?0.12:0.06);
+  if(Math.random()<mr){aw('blue');rot(pF);rR();}
+  else{st='block';bt=true;blk=[];hl(true);document.getElementById('hint').textContent='选前排蛙拦网(可多选1-3只,空格确认)';setTimeout(()=>{if(st==='block'){if(blk.length>0)dB();else{aw('red');bt=false;clS();rR();}}},4000);}
 }
 
-function aiServe(){
-  if(state!=='idle'||matchOver)return;
-  state='serving';touchCount=0;
-  setTimeout(()=>{
-    if(Math.random()<0.12){award('blue');rotate(playerFrogs);resetRound();}
-    else{
-      state='receive';bulletTime=true;touchCount=1;
-      highlight(false);document.getElementById('hint').textContent='🎯 点后排蛙接一传!';
-      setTimeout(()=>{if(state==='receive'){award('red');bulletTime=false;clearSel();resetRound();}},4000);
-    }
-  },1000);
-}
+// ====== 玩家操作 ======
+function dR(f){if(st!=='receive'||f.front)return;clS();bt=false;tc=2;const mod=getM(f,true);qS(r=>{if(r==='perfect'){sP();sp(f.model.position.x,1.5,f.model.position.z,0x00ff88,15);mor.blue=Math.min(100,mor.blue+15);mor.red=Math.max(0,mor.red-5);log('完美一传!','p');}else if(r==='normal'){bp(440,0.07);mor.blue=Math.min(100,mor.blue+5);log('一传成功');}else{sM();aw('red');rR();return;}st='set';bt=true;hl(null);document.getElementById('hint').textContent='✋ 选任意蛙做二传';setTimeout(()=>{if(st==='set')dS(pF[1]);},3000);},'一传',mod);}
+function dS(f){if(st!=='set')return;clS();bt=false;tc=3;bp(350,0.07);log(FN[f.type]+' 二传!');setTimeout(()=>{st='attack';bt=true;hl(true);document.getElementById('hint').textContent='💥 选前排蛙扣球 ('+(tac==='power'?'全力':tac==='tip'?'轻吊':'假扣真传')+')';setTimeout(()=>{if(st==='attack'){aw('red');bt=false;clS();rR();}},3500);},500);}
+function dK(f){if(st!=='attack'||!f.front)return;clS();bt=false;if(tac==='tip'){sS();sp(f.model.position.x,2,f.model.position.z-2,0xffaa00,8);log('🪶轻吊得分!','p');aw('blue');rot(pF);rR();return;}
+  const cfg={easy:{b:0.15,p:0.2},normal:{b:0.35,p:0.35},hard:{b:0.55,p:0.45}};const c=cfg[aiD];
+  if(Math.random()<c.b){if(Math.random()<c.p){sM();log('AI完美拦网!','m');aw('red');rR();}else{sP();log('AI拦网撑起');bt=true;hl(true);document.getElementById('hint').textContent='AI拦网!再选蛙扣球';}return;}
+  const mod=getM(f,false);qS(r=>{if(r==='perfect'){sS();sp(f.model.position.x,2.5,f.model.position.z-3,0xffaa00,20);mor.blue=Math.min(100,mor.blue+25);log('💥完美扣球!','p');aw('blue');rot(pF);}else if(r==='normal'){sS();mor.blue=Math.min(100,mor.blue+10);log('扣球得分!','p');aw('blue');rot(pF);}else{sM();log('扣球失误','m');aw('red');}uUI();rR();},'扣球!',mod);}
+function dB(){clS();bt=false;const f=blk[0],mod=f?getM(f,false):{ps:38,pe:76,sp:1,label:'拦网'};qS(r=>{if(r==='perfect'){sS();if(f)sp(f.model.position.x,2,f.model.position.z,0x00ff88,20);mor.blue=Math.min(100,mor.blue+20+blk.length*5);log('🛡完美拦网!','p');aw('blue');rot(pF);rR();}else if(r==='normal'){sP();mor.blue=Math.min(100,mor.blue+8);log('拦网撑起!转入进攻');st='attack';bt=true;hl(true);document.getElementById('hint').textContent='拦网撑起!选蛙扣球';}else{sM();log('拦网失败','m');aw('red');rR();}blk=[];},'拦网('+blk.length+'人)!',mod);}
 
-function aiPlay(){
-  if(Math.random()<0.15){award('blue');rotate(playerFrogs);resetRound();}
-  else{
-    state='block';bulletTime=true;blockers=[];
-    highlight(true);document.getElementById('hint').textContent='选前排蛙拦网(可多选,空格确认)';
-    setTimeout(()=>{if(state==='block'){if(blockers.length>0)doBlock();else{award('red');bulletTime=false;clearSel();resetRound();}}},4000);
-  }
-}
-
-// ===== 玩家操作 =====
-function doReceive(frog){
-  if(state!=='receive'||frog.front)return;
-  clearSel();bulletTime=false;touchCount=2;
-  const mod=getMod(frog,true);
-  startQTE(r=>{
-    if(r==='perfect'){sfxP();spawnParts(frog.model.position.x,1.5,frog.model.position.z,0x00ff88,15);morale.blue=Math.min(100,morale.blue+15);morale.red=Math.max(0,morale.red-5);log('完美一传!','p');}
-    else if(r==='normal'){beep(440,0.08);morale.blue=Math.min(100,morale.blue+5);log('一传成功');}
-    else{sfxM();award('red');resetRound();return;}
-    state='set';bulletTime=true;highlight(null);
-    document.getElementById('hint').textContent='✋ 选任意蛙做二传';
-    setTimeout(()=>{if(state==='set')doSet(playerFrogs[1]);},3000);
-  },'一传接球',mod);
-}
-
-function doSet(frog){
-  if(state!=='set')return;
-  clearSel();bulletTime=false;touchCount=3;
-  beep(350,0.08);log(N[frog.type]+' 二传!');
-  setTimeout(()=>{
-    state='attack';bulletTime=true;highlight(true);
-    document.getElementById('hint').textContent='💥 选前排蛙扣球';
-    setTimeout(()=>{if(state==='attack'){award('red');bulletTime=false;clearSel();resetRound();}},3500);
-  },500);
-}
-
-function doSpike(frog){
-  if(state!=='attack'||!frog.front)return;
-  clearSel();bulletTime=false;
-  if(tactic==='tip'){sfxS();spawnParts(frog.model.position.x,2,frog.model.position.z-2,0xffaa00,10);log('🪶轻吊得分!','p');award('blue');rotate(playerFrogs);resetRound();return;}
-  // AI拦网
-  const cfg={easy:{b:0.15,p:0.2},normal:{b:0.35,p:0.35},hard:{b:0.55,p:0.45}};
-  const c=cfg[aiDiff];
-  if(Math.random()<c.b){if(Math.random()<c.p){sfxM();log('AI完美拦网!','m');award('red');resetRound();}else{sfxP();log('AI拦网撑起');bulletTime=true;highlight(true);document.getElementById('hint').textContent='AI拦网!再选蛙扣球';}return;}
-  const mod=getMod(frog,false);
-  startQTE(r=>{
-    if(r==='perfect'){sfxS();spawnParts(frog.model.position.x,2.5,frog.model.position.z-3,0xffaa00,25);morale.blue=Math.min(100,morale.blue+25);log('💥完美扣球!','p');award('blue');rotate(playerFrogs);}
-    else if(r==='normal'){sfxS();morale.blue=Math.min(100,morale.blue+10);log('扣球得分!','p');award('blue');rotate(playerFrogs);}
-    else{sfxM();log('扣球失误','m');award('red');}
-    updUI();resetRound();
-  },'扣球!',mod);
-}
-
-function doBlock(){
-  clearSel();bulletTime=false;
-  const frog=blockers[0];
-  const mod=frog?getMod(frog,false):{ps:38,pe:76,sp:1,label:'拦网'};
-  startQTE(r=>{
-    if(r==='perfect'){sfxS();if(frog)spawnParts(frog.model.position.x,2,frog.model.position.z,0x00ff88,25);morale.blue=Math.min(100,morale.blue+20+blockers.length*5);log('🛡完美拦网!','p');award('blue');rotate(playerFrogs);resetRound();}
-    else if(r==='normal'){sfxP();morale.blue=Math.min(100,morale.blue+8);log('拦网撑起!转入进攻');state='attack';bulletTime=true;highlight(true);document.getElementById('hint').textContent='拦网撑起!选蛙扣球';}
-    else{sfxM();log('拦网失败','m');award('red');resetRound();}
-    blockers=[];
-  },'拦网('+blockers.length+'人)!',mod);
-}
-
-// ===== 点击 =====
-const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2();
-renderer.domElement.addEventListener('click',e=>{
-  mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;
-  raycaster.setFromCamera(mouse,camera);
-  const hits=raycaster.intersectObjects([...playerFrogs,...aiFrogs].map(f=>f.model),true);
-  if(!hits.length)return;
-  let obj=hits[0].object;while(obj&&!obj.isGroup)obj=obj.parent;
-  const frog=[...playerFrogs,...aiFrogs].find(f=>f.model===obj);
-  if(!frog||!frog.selectable||frog.side!=='blue')return;
-  if(state==='receive')doReceive(frog);
-  else if(state==='set')doSet(frog);
-  else if(state==='block'){
-    const idx=blockers.indexOf(frog);
-    if(idx>=0){blockers.splice(idx,1);frog.model.userData.ring.material.color.set(0x00ff88);}
-    else if(blockers.length<3){blockers.push(frog);frog.model.userData.ring.material.color.set(0xff6600);}
-    document.getElementById('hint').textContent='已选'+blockers.length+'只拦网蛙,空格确认(最多3只)';
-  }else if(state==='attack')doSpike(frog);
+// ====== 点击 ======
+const RC=new T.Raycaster(),MS=new T.Vector2();
+R.domElement.addEventListener('click',e=>{
+  MS.x=(e.clientX/innerWidth)*2-1;MS.y=-(e.clientY/innerHeight)*2+1;RC.setFromCamera(MS,C);
+  const hits=RC.intersectObjects([...pF,...aF].map(f=>f.model),true);
+  if(!hits.length)return;let o=hits[0].object;while(o&&!o.isGroup)o=o.parent;
+  const f=[...pF,...aF].find(x=>x.model===o);if(!f||!f.sel||f.side!=='blue')return;
+  if(st==='receive')dR(f);else if(st==='set')dS(f);
+  else if(st==='block'){const i=blk.indexOf(f);if(i>=0){blk.splice(i,1);f.model.userData.ring.material.color.set(0x00ff88);}else if(blk.length<3){blk.push(f);f.model.userData.ring.material.color.set(0xf60);}document.getElementById('hint').textContent='已选'+blk.length+'只拦网蛙,空格确认(最多3只)';}
+  else if(st==='attack')dK(f);
 });
 
-// ===== 键盘 =====
+// ====== 键盘 ======
 document.addEventListener('keydown',e=>{
-  if(e.code==='Space'){e.preventDefault();au();
-    if(qteOn)fireQTE();
-    else if(state==='block'&&blockers.length>0)doBlock();
-    else if(state==='idle'&&serving==='blue')startServe();
-  }
-  if(e.code==='KeyR'){createAllFrogs();sc={blue:0,red:0};sets={blue:0,red:0};curSet=1;matchOver=false;buff=null;timeouts={blue:2,red:2};morale={blue:0,red:0};resetRound();buildFormBtns();}
-  if(e.code==='Digit1'){tactic='power';document.getElementById('btnT').textContent='💥全力';document.getElementById('btnT').style.background='#960';}
-  if(e.code==='Digit2'){tactic='tip';document.getElementById('btnT').textContent='🪶轻吊';document.getElementById('btnT').style.background='#690';}
-  if(e.code==='Digit3'){tactic='fake';document.getElementById('btnT').textContent='🎭假扣真传';document.getElementById('btnT').style.background='#609';}
+  if(e.code==='Space'){e.preventDefault();au();if(qOn)qF();else if(st==='block'&&blk.length>0)dB();else if(st==='idle'&&sv==='blue')sSv();}
+  if(e.code==='KeyR'){crAll();sc={blue:0,red:0};sets={blue:0,red:0};cSet=1;mo=false;buff=null;tos={blue:2,red:2};mor={blue:0,red:0};blkCd=0;rR();bFB();}
+  if(e.code==='KeyT')doTO();
+  if(e.code==='KeyE')doTel();
+  if(e.code==='Digit1'){tac='power';document.getElementById('bT').textContent='💥全力';document.getElementById('bT').style.background='#960';}
+  if(e.code==='Digit2'){tac='tip';document.getElementById('bT').textContent='🪶轻吊';document.getElementById('bT').style.background='#690';}
+  if(e.code==='Digit3'){tac='fake';document.getElementById('bT').textContent='🎭假扣真传';document.getElementById('bT').style.background='#609';}
 });
 
-// ===== 按钮 =====
-document.getElementById('btnS').addEventListener('click',startServe);
-document.getElementById('btnR').addEventListener('click',()=>{createAllFrogs();sc={blue:0,red:0};sets={blue:0,red:0};curSet=1;matchOver=false;buff=null;timeouts={blue:2,red:2};morale={blue:0,red:0};resetRound();buildFormBtns();});
-document.getElementById('btnT').addEventListener('click',()=>{
-  const t=['power','tip','fake'],i=t.indexOf(tactic);tactic=t[(i+1)%3];
-  document.getElementById('btnT').textContent={power:'💥全力',tip:'🪶轻吊',fake:'🎭假扣真传'}[tactic];
-  document.getElementById('btnT').style.background={power:'#960',tip:'#690',fake:'#609'}[tactic];
-});
-document.getElementById('btnB').addEventListener('click',()=>{
-  if(morale.blue<100){log('士气不足');return;}
-  morale.blue=0;buff={type:'attack',turns:3};log('🔥进攻狂潮!','p');sfxS();spawnParts(0,2,5,0xff6600,30);
-});
-document.getElementById('btnP').addEventListener('click',()=>{
-  if(state!=='idle'||serving!=='blue'){log('只能己方发球前暂停');return;}
-  if(timeouts.blue<=0){log('暂停次数用完');return;}
-  timeouts.blue--;log('⏸暂停('+timeouts.blue+'次)','p');
-  document.getElementById('hint').textContent='⏸暂停中...';
-  setTimeout(()=>document.getElementById('hint').textContent='暂停结束',3000);
-});
-document.getElementById('selAI').addEventListener('change',e=>{
-  aiDiff=e.target.value;
-  const types={easy:['normal','normal','normal','normal','normal','normal'],normal:['bouncy','power','normal','speed','normal','normal'],hard:['bouncy','power','beauty','speed','normal','cheer']};
-  aiFrogs.forEach((f,i)=>{f.type=types[aiDiff][i]||'normal';});
-  log('AI难度:'+(aiDiff==='easy'?'简单':aiDiff==='normal'?'普通':'困难'));
-});
-document.getElementById('slBullet').addEventListener('input',e=>{bulletSpeed=[0.05,0.1,0.15,0.25][parseInt(e.target.value)-1];});
+// ====== 按钮 ======
+document.getElementById('bS').addEventListener('click',sSv);
+document.getElementById('bR').addEventListener('click',()=>{crAll();sc={blue:0,red:0};sets={blue:0,red:0};cSet=1;mo=false;buff=null;tos={blue:2,red:2};mor={blue:0,red:0};blkCd=0;rR();bFB();});
+document.getElementById('bT').addEventListener('click',()=>{const t=['power','tip','fake'];tac=t[(t.indexOf(tac)+1)%3];document.getElementById('bT').textContent={power:'💥全力',tip:'🪶轻吊',fake:'🎭假扣真传'}[tac];document.getElementById('bT').style.background={power:'#960',tip:'#690',fake:'#609'}[tac];});
+document.getElementById('bB').addEventListener('click',()=>{if(mor.blue<100){log('士气不足('+Math.round(mor.blue)+'/100)');return;}mor.blue=0;const ty=document.getElementById('bB').textContent.includes('进攻')?'defense':'attack';buff={type:ty,turns:3};document.getElementById('bB').textContent=ty==='attack'?'🔥进攻狂潮':'🛡铁壁防守';log((ty==='attack'?'🔥进攻狂潮(扣球+50%,防守-20%)':'🛡铁壁防守(判定+25%,扣球变难)')+' 持续3回合!','p');sS();sp(0,2,5,ty==='attack'?0xf40:0x48f,25);});
+document.getElementById('bP').addEventListener('click',doTO);
+document.getElementById('bTel').addEventListener('click',doTel);
+document.getElementById('selAI').addEventListener('change',e=>{aiD=e.target.value;const ts={easy:['normal','normal','normal','normal','normal','normal'],normal:['bouncy','power','normal','speed','normal','normal'],hard:['bouncy','power','beauty','speed','normal','cheer']};aF.forEach((f,i)=>{f.type=ts[aiD][i]||'normal';});log('AI难度:'+(aiD==='easy'?'简单':aiD==='normal'?'普通':'困难'));});
+document.getElementById('slBullet').addEventListener('input',e=>{btS=[0.05,0.1,0.15,0.25][parseInt(e.target.value)-1];});
 
-function toggleForm(idx){forms[idx]=forms[idx]==='attack'?'defense':'attack';log(N[playerFrogs[idx].type]+'→'+(forms[idx]==='attack'?'⚔攻':'🛡守'));}
-function buildFormBtns(){
-  const div=document.getElementById('formBtns');div.innerHTML='';
-  LINEUP.forEach((t,i)=>{
-    const b=document.createElement('button');
-    b.style.cssText='padding:2px 6px;border:none;border-radius:3px;font-size:9px;cursor:pointer;color:#fff';
-    b.style.background=forms[i]==='attack'?'#611':'#116';
-    b.textContent=(i+1)+(forms[i]==='attack'?'⚔':'🛡');b.title=N[t];
-    b.addEventListener('click',()=>{toggleForm(i);buildFormBtns();});
-    div.appendChild(b);
-  });
+function tgF(i){forms[i]=forms[i]==='attack'?'defense':'attack';log(FN[pF[i].type]+' → '+(forms[i]==='attack'?'⚔攻':'🛡守'));}
+function bFB(){const d=document.getElementById('fBtns');d.innerHTML='';LU.forEach((t,i)=>{const b=document.createElement('button');b.style.cssText='padding:2px 5px;border:none;border-radius:3px;font-size:8px;cursor:pointer;color:#fff';b.style.background=forms[i]==='attack'?'#611':'#116';b.textContent=(i+1)+(forms[i]==='attack'?'⚔':'🛡');b.title=FN[t];b.addEventListener('click',()=>{tgF(i);bFB();});d.appendChild(b);});}bFB();
+
+// ====== 教程 ======
+const TUT=[{e:'🐸',t:'欢迎来到青蛙排球!',x:'指令选择 + QTE时机的排球博弈。<br>6只青蛙 vs AI，25分制三局两胜。'},{e:'🖱',t:'操作方式',x:'<b>鼠标点击</b>绿圈青蛙选择<br><b>空格键</b> QTE判定<br><b>鼠标拖拽</b>旋转视角<br>数字键<b>1/2/3</b>切换战术<br><b>T</b>暂停 <b>E</b>黑拳蛙传送 <b>R</b>重置'},{e:'🏐',t:'游戏流程',x:'<b>发球</b>(空格QTE)→AI接球→AI进攻→<br><b>你拦网</b>(点前排蛙,可多选1~3只,空格确认)→<br><b>你进攻</b>(点前排蛙扣球,空格QTE)→<b>得分!</b>'},{e:'📊',t:'QTE蓄力条',x:'<span style="color:#0f8;">绿色区域</span>=完美→得分!<br><span style="color:#fa0;">橙色</span>=普通→成功<br><span style="color:#f44;">红色</span>=失误→丢分'},{e:'🐸',t:'8种青蛙 + 被动',x:'<span style="color:#4cf;">弹力蛙</span>:绿区25-85%<br><span style="color:#f64;">大力蛙</span>:绿区48-62%,扣球强<br><span style="color:#fd4;">速度蛙</span>:子弹时间+30%<br><span style="color:#f8c;">美女蛙</span>:对手绿区-15%<br><span style="color:#fa0;">加油蛙</span>:己方绿区+10%<br><span style="color:#555;">黑拳蛙</span>:E键传送(3回合CD)<br><span style="color:#eee;">教练蛙</span>:士气翻倍,暂停+1<br>底部按钮可切换⚔攻/🛡守形态!'},{e:'🎯',t:'准备好了!',x:'25分制,领先2分,三局两胜!<br>按T暂停可换替补青蛙<br>🐸🏐 开始吧!'}];
+document.getElementById('tp').addEventListener('click',()=>{if(tutS>0)tutS--;sT(tutS);});document.getElementById('tn').addEventListener('click',()=>{if(tutS<TUT.length-1)tutS++;else{document.getElementById('tut').style.display='none';return;}sT(tutS);});document.getElementById('ts').addEventListener('click',()=>{document.getElementById('tut').style.display='none';});
+function sT(i){tutS=i;const s=TUT[i];document.getElementById('te').textContent=s.e;document.getElementById('tt').textContent=s.t;document.getElementById('tx').innerHTML=s.x;document.getElementById('tp').style.display=i===0?'none':'inline-block';document.getElementById('tn').textContent=i>=TUT.length-1?'🎮 开始!':'下一步→';document.getElementById('tut').style.display='flex';}
+if(!localStorage.getItem('fv4_tut')){setTimeout(()=>sT(0),600);localStorage.setItem('fv4_tut','1');}
+
+// ====== 相机 ======
+const ctrl=new OrbitControls(C,R.domElement);ctrl.target.set(0,1,0);ctrl.enableDamping=true;ctrl.dampingFactor=0.15;ctrl.update();
+
+// ====== 渲染循环 (性能优化) ======
+const clock=new T.Clock();let frameSkip=0;
+function anim(){
+  requestAnimationFrame(anim);frameSkip=(frameSkip+1)%2;if(frameSkip===0)return;
+  const dt=Math.min(clock.getDelta(),0.1);const btm=getBTMod();const ts=bt?btm:1;const eDt=dt*ts;
+
+  if(qOn){qV+=qD*qSP*160*eDt;if(qV>=100){qV=100;qD=-1}if(qV<=0){qV=0;qD=1}const f=document.getElementById('qte-f');if(f){f.style.width=qV+'%';f.style.background=(qV>=qPS&&qV<=qPE)?'linear-gradient(90deg,#0a4,#0f8,#0a4)':(qV>=qPS-14&&qV<=qPE+10)?'linear-gradient(90deg,#c60,#fa0,#c60)':'linear-gradient(90deg,#c00,#f44,#c00)';}}
+
+  for(let i=pts.length-1;i>=0;i--){const p=pts[i];p.position.x+=p.userData.vx*dt;p.position.y+=p.userData.vy*dt;p.position.z+=p.userData.vz*dt;p.userData.vy-=4*dt;p.userData.life-=p.userData.decay;p.material.opacity=Math.max(0,p.userData.life);if(p.userData.life<=0){S.remove(p);pts.splice(i,1);}}
+
+  S.fog.density=bt?0.02:0.005;R.toneMappingExposure=bt?0.7:1.2;
+  ctrl.update();R.render(S,C);
 }
-buildFormBtns();
-
-// ===== 联机按钮 =====
-document.getElementById('btn-host').addEventListener('click', hostRoom);
-document.getElementById('btn-join').addEventListener('click', ()=>{
-  const code = prompt('输入对方的房间码或Peer ID:');
-  if (code) joinRoom(code);
-});
-document.getElementById('btn-hide-multi').addEventListener('click', hideMultiPanel);
-
-// ===== 玩家名 & 排行榜 =====
-document.getElementById('save-name').addEventListener('click', ()=>{
-  const input = document.getElementById('player-name');
-  playerName = input.value.trim() || '玩家'+Math.floor(Math.random()*1000);
-  input.value = playerName;
-  saveDB(); showRanking();
-  log('昵称已保存: '+playerName, 'p');
-});
-document.getElementById('show-rank').addEventListener('click', showRanking);
-if (playerName) document.getElementById('player-name').value = playerName;
-showRanking();
-
-// ===== 相机 =====
-const controls=new OrbitControls(camera,renderer.domElement);
-controls.target.set(0,1,0);controls.enableDamping=true;controls.update();
-
-// ===== 渲染循环 =====
-const clock=new THREE.Clock();
-function animate(){
-  requestAnimationFrame(animate);
-  const dt=Math.min(clock.getDelta(),0.1),ts=bulletTime?bulletSpeed:1;
-
-  if(qteOn){
-    qteVal+=qteDir*qteSP*160*dt*ts;
-    if(qteVal>=100){qteVal=100;qteDir=-1}if(qteVal<=0){qteVal=0;qteDir=1}
-    const fill=document.getElementById('qte-fill');if(fill){
-      fill.style.width=qteVal+'%';
-      fill.style.background=(qteVal>=qtePS&&qteVal<=qtePE)?'linear-gradient(90deg,#0a4,#0f8,#0a4)':(qteVal>=qtePS-14&&qteVal<=qtePE+10)?'linear-gradient(90deg,#c60,#fa0,#c60)':'linear-gradient(90deg,#c00,#f44,#c00)';
-    }
-  }
-
-  for(let i=particles.length-1;i>=0;i--){
-    const p=particles[i];p.position.x+=p.userData.vx*dt;p.position.y+=p.userData.vy*dt;p.position.z+=p.userData.vz*dt;
-    p.userData.vy-=5*dt;p.userData.life-=p.userData.decay;p.material.opacity=Math.max(0,p.userData.life);
-    if(p.userData.life<=0){scene.remove(p);particles.splice(i,1);}
-  }
-
-  scene.fog.density=bulletTime?0.02:0.005;
-  renderer.toneMappingExposure=bulletTime?0.7:1.2;
-  controls.update();
-  renderer.render(scene,camera);
-}
-animate();
-document.getElementById('hint').textContent='按空格发球 | 123切换战术';
-log('🐸 青蛙排球就绪! 蓝队'+playerFrogs.length+'只 红队'+aiFrogs.length+'只');
-</script>
-</body>
-</html>
+anim();rR();document.getElementById('hint').textContent='按空格发球 | 123战术 | T暂停 | E传送';
+log('🐸 青蛙排球 v4.0 就绪! 蓝队'+pF.length+'只 红队'+aF.length+'只');
+</script></body></html>
