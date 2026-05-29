@@ -39,6 +39,12 @@ body{background:#111;overflow:hidden;font-family:'Microsoft YaHei',sans-serif}
 </div>
 <div id="formBtns" style="position:absolute;bottom:55px;left:50%;transform:translateX(-50%);display:flex;gap:3px;z-index:10"></div>
 <div id="log"></div>
+<div id="db-panel" style="position:absolute;top:10px;left:10px;z-index:10;font-size:11px;color:#aaa;background:rgba(0,0,0,0.5);padding:8px;border-radius:6px;max-width:180px;">
+  <input id="player-name" placeholder="输入昵称" style="width:100%;padding:4px;background:#222;color:#fff;border:1px solid #555;border-radius:4px;font-size:11px;">
+  <button id="save-name" style="margin-top:4px;padding:3px 8px;font-size:10px;background:#0c6;color:#fff;border:none;border-radius:4px;cursor:pointer;">保存昵称</button>
+  <button id="show-rank" style="margin-top:4px;padding:3px 8px;font-size:10px;background:#06a;color:#fff;border:none;border-radius:4px;cursor:pointer;">🏆 排行榜</button>
+  <div id="rank-list" style="display:none;margin-top:4px;max-height:150px;overflow-y:auto;"></div>
+</div>
 <div id="qte-bar">
   <div id="qte-outer"><div id="qte-perfect" style="left:38%;width:38%"></div><div id="qte-fill"></div></div>
   <div id="qte-label">␣ 空格确认</div>
@@ -50,6 +56,57 @@ body{background:#111;overflow:hidden;font-family:'Microsoft YaHei',sans-serif}
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ===== 数据库 (localStorage) =====
+let playerName = localStorage.getItem('fv_name') || '';
+let matchHistory = JSON.parse(localStorage.getItem('fv_history') || '[]');
+let leaderboard = JSON.parse(localStorage.getItem('fv_leaderboard') || '[]');
+
+function saveDB() {
+  localStorage.setItem('fv_name', playerName);
+  localStorage.setItem('fv_history', JSON.stringify(matchHistory.slice(-50)));
+  localStorage.setItem('fv_leaderboard', JSON.stringify(leaderboard.slice(0, 20)));
+}
+
+function addMatchRecord(result, myScore, aiScore) {
+  matchHistory.push({
+    date: new Date().toLocaleDateString(),
+    time: new Date().toLocaleTimeString().slice(0,5),
+    result, myScore, aiScore, difficulty: aiDiff
+  });
+  // 更新排行榜
+  const existing = leaderboard.find(e => e.name === playerName);
+  const points = result === 'win' ? 3 : (result === 'lose' ? 1 : 0);
+  if (existing) {
+    existing.games++; existing.wins += result === 'win' ? 1 : 0;
+    existing.losses += result === 'lose' ? 1 : 0;
+    existing.points = existing.wins * 3 + existing.losses;
+  } else if (playerName) {
+    leaderboard.push({
+      name: playerName, games: 1,
+      wins: result === 'win' ? 1 : 0,
+      losses: result === 'lose' ? 1 : 0,
+      points: points
+    });
+  }
+  leaderboard.sort((a,b) => b.points - a.points);
+  saveDB();
+  showRanking();
+}
+
+function showRanking() {
+  const div = document.getElementById('rank-list');
+  div.style.display = 'block';
+  if (leaderboard.length === 0) {
+    div.innerHTML = '<div style="color:#888;">暂无数据</div>';
+    return;
+  }
+  div.innerHTML = leaderboard.map((e,i) =>
+    `<div style="color:${i===0?'#ffdd00':i===1?'#ccc':i===2?'#c96':'#888'};font-size:10px;padding:1px 0;">
+      ${i+1}. ${e.name} ${e.wins}胜${e.losses}负 (${e.points}分)
+    </div>`
+  ).join('');
+}
 
 // ===== 场景 =====
 const scene = new THREE.Scene();
@@ -230,7 +287,12 @@ function award(team){
 function winSet(team){
   sets[team]++;beep(880,0.3);setTimeout(()=>beep(1100,0.5),200);
   log((team==='blue'?'你':'AI')+'赢得第'+curSet+'局!','p');
-  if(sets[team]>=2){matchOver=true;document.getElementById('hint').textContent=team==='blue'?'🏆 你赢了! 按R重来':'💔 AI获胜 按R重来';}
+  if(sets[team]>=2){
+    matchOver=true;
+    document.getElementById('hint').textContent=team==='blue'?'🏆 你赢了! 按R重来':'💔 AI获胜 按R重来';
+    // 保存比赛记录
+    if(playerName) addMatchRecord(team==='blue'?'win':'lose', sc.blue, sc.red);
+  }
   else{curSet++;sc={blue:0,red:0};updUI();log('交换场地,第'+curSet+'局开始');}
 }
 
@@ -447,6 +509,18 @@ function buildFormBtns(){
   });
 }
 buildFormBtns();
+
+// ===== 玩家名 & 排行榜 =====
+document.getElementById('save-name').addEventListener('click', ()=>{
+  const input = document.getElementById('player-name');
+  playerName = input.value.trim() || '玩家'+Math.floor(Math.random()*1000);
+  input.value = playerName;
+  saveDB(); showRanking();
+  log('昵称已保存: '+playerName, 'p');
+});
+document.getElementById('show-rank').addEventListener('click', showRanking);
+if (playerName) document.getElementById('player-name').value = playerName;
+showRanking();
 
 // ===== 相机 =====
 const controls=new OrbitControls(camera,renderer.domElement);
